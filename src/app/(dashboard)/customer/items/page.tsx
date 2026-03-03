@@ -1,0 +1,218 @@
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { Header } from "@/components/layout/Header";
+import { DataTable } from "@/components/shared/DataTable";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { StatusBadge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
+import { TrackingTimeline } from "@/components/shared/TrackingTimeline";
+import { formatDate } from "@/lib/utils";
+import { ITEM_STATUS_STEPS } from "@/lib/utils";
+import type { Item, ItemStatus } from "@/types";
+import { Package, X, Hash, Weight, Calendar, Truck, ShoppingCart, Box } from "lucide-react";
+import axios from "axios";
+import { useToast } from "@/components/ui/toast";
+
+const STATUS_OPTIONS = [
+  { value: "", label: "All Statuses" },
+  ...ITEM_STATUS_STEPS.map((s) => ({ value: s, label: s })),
+];
+
+function DetailRow({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between py-2 border-b border-gray-50 last:border-0">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-xs font-medium text-gray-800 text-right max-w-[60%] break-words">{value}</span>
+    </div>
+  );
+}
+
+export default function CustomerItemsPage() {
+  const { error } = useToast();
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<ItemStatus | "">("");
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+
+  const load = useCallback(
+    async (search?: string, status?: string) => {
+      setLoading(true);
+      try {
+        const res = await axios.get("/api/items", {
+          params: {
+            search: search || undefined,
+            status: status || undefined,
+          },
+        });
+        setItems(res.data.data);
+      } catch {
+        error("Failed to load items");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [error]
+  );
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <Header title="My Items" subtitle="All your packages" />
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Items list */}
+        <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+          <div className="flex items-center gap-3">
+            <SearchBar
+              placeholder="Search items..."
+              onSearch={(val) => load(val, statusFilter)}
+              className="w-64"
+            />
+            <Select
+              options={STATUS_OPTIONS}
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as ItemStatus | "");
+                load("", e.target.value);
+              }}
+              className="w-52"
+            />
+          </div>
+
+          <DataTable
+            columns={[
+              {
+                key: "itemRef",
+                header: "Ref",
+                render: (item) => (
+                  <span className="font-mono text-xs font-bold">
+                    {item.itemRef}
+                  </span>
+                ),
+              },
+              {
+                key: "description",
+                header: "Description",
+                render: (item) => (
+                  <span className="text-sm text-gray-800">{item.description}</span>
+                ),
+              },
+              {
+                key: "weight",
+                header: "Weight",
+                render: (item) => (
+                  <span className="text-sm">{item.weight} kg</span>
+                ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                render: (item) => <StatusBadge status={item.status} />,
+              },
+              {
+                key: "dateReceived",
+                header: "Received",
+                render: (item) => (
+                  <span className="text-xs text-gray-500">
+                    {formatDate(item.dateReceived)}
+                  </span>
+                ),
+              },
+            ]}
+            data={items}
+            keyExtractor={(item) => item.id}
+            loading={loading}
+            emptyMessage="No items found"
+            emptyIcon={<Package className="h-12 w-12" />}
+            onRowClick={(item) => setSelectedItem(item)}
+          />
+        </div>
+
+        {/* Detail + Tracking Panel */}
+        {selectedItem && (
+          <div className="w-88 border-l border-gray-200 bg-white overflow-y-auto shrink-0" style={{ width: "22rem" }}>
+            {/* Panel header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div>
+                <p className="font-mono font-bold text-sm text-gray-900">{selectedItem.itemRef}</p>
+                <StatusBadge status={selectedItem.status} />
+              </div>
+              <button
+                onClick={() => setSelectedItem(null)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              {/* Photos */}
+              {selectedItem.photos && selectedItem.photos.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Photos</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {selectedItem.photos.map((photo) => (
+                      <a
+                        key={photo.id}
+                        href={photo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0"
+                      >
+                        <img
+                          src={photo.url}
+                          alt={photo.filename}
+                          className="h-24 w-24 object-cover rounded-xl border border-gray-200 hover:opacity-90 transition-opacity"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Description</p>
+                <p className="text-sm text-gray-800">{selectedItem.description}</p>
+              </div>
+
+              {/* Item details */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Details</p>
+                <DetailRow label="Weight" value={`${selectedItem.weight} kg`} />
+                {selectedItem.length && selectedItem.width && selectedItem.height && (
+                  <DetailRow
+                    label="Dimensions"
+                    value={`${selectedItem.length} × ${selectedItem.width} × ${selectedItem.height} ${selectedItem.dimensionUnit}`}
+                  />
+                )}
+                <DetailRow label="Date Received" value={formatDate(selectedItem.dateReceived)} />
+                {selectedItem.trackingNumber && (
+                  <DetailRow label="US Tracking #" value={selectedItem.trackingNumber} />
+                )}
+                {selectedItem.containerName && (
+                  <DetailRow label="Container" value={selectedItem.containerName} />
+                )}
+                {selectedItem.orderRef && (
+                  <DetailRow label="Order" value={selectedItem.orderRef} />
+                )}
+                {selectedItem.notes && (
+                  <DetailRow label="Notes" value={selectedItem.notes} />
+                )}
+              </div>
+
+              {/* Tracking timeline */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Shipment Progress</p>
+                <TrackingTimeline currentStatus={selectedItem.status} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

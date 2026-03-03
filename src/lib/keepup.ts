@@ -1,0 +1,154 @@
+// Keepup.store invoicing integration
+// Docs: https://docs.keepup.store/docs/api/sales
+
+const BASE = "https://api.keepup.store/v2.0";
+
+function getKey(): string {
+  const key = process.env.KEEPUP_API_KEY;
+  if (!key) throw new Error("KEEPUP_API_KEY is not set");
+  return key;
+}
+
+function authHeaders() {
+  return {
+    Authorization: `Bearer ${getKey()}`,
+    "Content-Type": "application/json",
+  };
+}
+
+// Format a date string to "YYYY-MM-DD HH:mm:ss" for Keepup
+function toKeepupDate(dateStr?: string): string {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  const YYYY = d.getUTCFullYear();
+  const MM = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const DD = String(d.getUTCDate()).padStart(2, "0");
+  return `${YYYY}-${MM}-${DD} 00:00:00`;
+}
+
+export interface KeepupLineItem {
+  item_id: number;
+  item_name: string;
+  quantity: number;
+  price: number;
+  item_type?: string;
+}
+
+export interface CreateSaleParams {
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  items: Omit<KeepupLineItem, "item_id">[];
+  notes?: string;
+  reference?: string;
+  invoiceDate?: string; // YYYY-MM-DD
+}
+
+export interface KeepupSaleResult {
+  saleId: string;
+  link?: string;
+}
+
+// POST /v2.0/sales/add — create a new invoice/sale
+export async function createKeepupSale(
+  params: CreateSaleParams
+): Promise<KeepupSaleResult> {
+  // Add sequential item_id to each line item (required by Keepup)
+  const itemsWithIds: KeepupLineItem[] = params.items.map((item, i) => ({
+    item_id: i + 1,
+    ...item,
+  }));
+
+  const body: Record<string, unknown> = {
+    items: JSON.stringify(itemsWithIds),
+    payment_type: "bank_transfer",
+    amount_received: "0",
+    alert_customer: "no",
+  };
+  if (params.customerName) body.name = params.customerName;
+  if (params.customerEmail) body.email = params.customerEmail;
+  if (params.customerPhone) body.phone = params.customerPhone;
+  if (params.notes || params.reference) {
+    body.notes = [params.reference, params.notes].filter(Boolean).join(" · ");
+  }
+
+  console.log("[keepup] createKeepupSale request body:", JSON.stringify(body, null, 2));
+
+  const res = await fetch(`${BASE}/sales/add`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  console.log("[keepup] createKeepupSale response status:", res.status, "body:", JSON.stringify(data, null, 2));
+
+  if (!res.ok) {
+    throw new Error(
+      (data as { error?: string }).error ?? `Keepup API error ${res.status}`
+    );
+  }
+
+  const d = (data as { data?: { sale_id?: number | string; link?: string }; sale_id?: number | string; link?: string }).data ?? data;
+  console.log("[keepup] parsed saleId:", d.sale_id, "link:", d.link);
+  return {
+    saleId: String(d.sale_id ?? ""),
+    link: d.link ?? undefined,
+  };
+}
+
+// PUT /v2.0/sales/balance/{sale_id} — record a payment
+export async function recordKeepupPayment(
+  saleId: string,
+  amount: number
+): Promise<void> {
+  const res = await fetch(`${BASE}/sales/balance/${saleId}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({
+      amount_paid: String(amount),
+      alert_customer: "no",
+    }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      (data as { error?: string }).error ??
+        `Keepup balance error ${res.status}`
+    );
+  }
+}
+
+// PUT /v2.0/sales/cancel/{sale_id} — cancel a sale
+export async function cancelKeepupSale(saleId: string): Promise<void> {
+  const res = await fetch(`${BASE}/sales/cancel/${saleId}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ alert_customer: "no" }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      (data as { error?: string }).error ??
+        `Keepup cancel error ${res.status}`
+    );
+  }
+}
+
+// PUT /v2.0/sales/refund/{sale_id} — refund a sale
+export async function refundKeepupSale(saleId: string): Promise<void> {
+  const res = await fetch(`${BASE}/sales/refund/${saleId}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ alert_customer: "no" }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      (data as { error?: string }).error ??
+        `Keepup refund error ${res.status}`
+    );
+  }
+}
