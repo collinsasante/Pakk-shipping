@@ -86,7 +86,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-[600px]">
+    <div className="flex flex-col h-screen">
       {/* Brand at top */}
       <div className="flex items-center gap-2.5 px-10 pt-8">
         <Image src="/logowithouttext.png" alt="Pakkmaxx" width={28} height={28} className="rounded" />
@@ -186,19 +186,8 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{
-        background:
-          "radial-gradient(ellipse 80% 80% at 80% 20%, rgba(180,0,180,0.5) 0%, transparent 60%)," +
-          "radial-gradient(ellipse 70% 70% at 20% 80%, rgba(0,80,220,0.4) 0%, transparent 60%)," +
-          "linear-gradient(135deg, #0a0014 0%, #0d001e 100%)",
-      }}
-    >
-      <div
-        className="w-full max-w-5xl flex overflow-hidden shadow-2xl"
-        style={{ borderRadius: "24px", minHeight: "620px" }}
-      >
+    <div className="h-screen w-screen flex bg-white overflow-hidden">
+      <div className="w-full h-full flex overflow-hidden">
         {/* ── Left panel ── */}
         <div
           className="hidden lg:flex lg:w-[48%] flex-col justify-between p-10 relative overflow-hidden"

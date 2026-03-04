@@ -105,10 +105,11 @@ export default {
     // ── Serve static assets via ASSETS binding ────────────────────────────────
     // In Pages advanced mode (_worker.js) ALL requests go to the worker.
     // Static files must be fetched explicitly from env.ASSETS.
-    // This replicates the Workers [assets] run_worker_first=false behaviour.
-    if (env.ASSETS) {
+    // IMPORTANT: Only try ASSETS for GET/HEAD — ASSETS returns 405 for POST/etc.
+    // Only serve if response is 2xx (not 404/405/other errors).
+    if (env.ASSETS && (request.method === "GET" || request.method === "HEAD")) {
       const assetResp = await env.ASSETS.fetch(request.clone()).catch(() => null);
-      if (assetResp && assetResp.status !== 404) return assetResp;
+      if (assetResp && assetResp.ok) return assetResp;
     }
 
     try {
