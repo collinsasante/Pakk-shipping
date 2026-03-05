@@ -149,8 +149,8 @@ export function AdminSidebar() {
               className={cn(
                 "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-brand-600 text-white"
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  ? "text-white bg-white/10"
+                  : "text-gray-300 hover:bg-white/5 hover:text-white"
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
