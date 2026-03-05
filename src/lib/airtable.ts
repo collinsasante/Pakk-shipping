@@ -419,7 +419,7 @@ export const itemsApi = {
     if (params.search) {
       const s = escapeFormula(params.search.toLowerCase());
       formulas.push(
-        `OR(SEARCH('${s}', LOWER({Description})), SEARCH('${s}', LOWER({TrackingNumber})), SEARCH('${s}', LOWER({ItemRef})))`
+        `OR(SEARCH('${s}', LOWER({Description})), SEARCH('${s}', LOWER({TrackingNumber})), SEARCH('${s}', LOWER({ItemRef})), SEARCH('${s}', LOWER({CustomerShippingMark})), SEARCH('${s}', LOWER({CustomerName})))`
       );
     }
 

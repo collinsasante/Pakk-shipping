@@ -46,6 +46,7 @@ export default function ContainerDetailPage() {
   const [itemSearch, setItemSearch] = useState("");
   const [itemResults, setItemResults] = useState<Item[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchDone, setSearchDone] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -67,15 +68,17 @@ export default function ContainerDetailPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (itemSearch.length < 2) { setItemResults([]); return; }
+    if (itemSearch.length < 2) { setItemResults([]); setSearchDone(false); return; }
     const timer = setTimeout(async () => {
       setSearchLoading(true);
+      setSearchDone(false);
       try {
         const res = await axios.get("/api/items", { params: { search: itemSearch } });
         const all: Item[] = res.data.data;
         setItemResults(all.filter((item) => !container?.items?.some((ci) => ci.id === item.id)));
-      } catch { /* ignore */ } finally {
+      } catch { setItemResults([]); } finally {
         setSearchLoading(false);
+        setSearchDone(true);
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -161,6 +164,7 @@ export default function ContainerDetailPage() {
       success("Item added to container");
       setItemSearch("");
       setItemResults([]);
+      setSearchDone(false);
       load();
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err)
@@ -319,13 +323,15 @@ export default function ContainerDetailPage() {
                   placeholder="Search by ref or shipping mark..."
                   value={itemSearch}
                   onChange={(e) => setItemSearch(e.target.value)}
-                  onBlur={() => setTimeout(() => setItemResults([]), 200)}
+                  onBlur={() => setTimeout(() => { setItemResults([]); setSearchDone(false); }, 200)}
                   className="h-8 text-xs px-3 border border-gray-200 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
-                {(itemResults.length > 0 || searchLoading) && (
+                {(searchLoading || searchDone) && (
                   <div className="absolute top-9 right-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg w-72 max-h-52 overflow-y-auto">
                     {searchLoading ? (
                       <p className="px-3 py-2 text-xs text-gray-400">Searching...</p>
+                    ) : itemResults.length === 0 ? (
+                      <p className="px-3 py-2 text-xs text-gray-400">No items found</p>
                     ) : (
                       itemResults.map((item) => (
                         <button
