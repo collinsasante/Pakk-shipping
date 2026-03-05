@@ -29,7 +29,7 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <div
-      className={cn(className)}
+      className={cn("bg-white rounded-xl border border-gray-200 p-5 shadow-sm", className)}
     >
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-medium text-gray-600">{title}</p>
