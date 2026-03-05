@@ -17,7 +17,6 @@ import {
   Package,
   Trash2,
   RefreshCw,
-  Plus,
   Container as ContainerIcon,
   Edit2,
   Check,
@@ -44,7 +43,9 @@ export default function ContainerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState<ContainerStatus>("Loading");
-  const [addItemId, setAddItemId] = useState("");
+  const [itemSearch, setItemSearch] = useState("");
+  const [itemResults, setItemResults] = useState<Item[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -64,6 +65,21 @@ export default function ContainerDetailPage() {
   }, [id, error]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (itemSearch.length < 2) { setItemResults([]); return; }
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await axios.get("/api/items", { params: { search: itemSearch } });
+        const all: Item[] = res.data.data;
+        setItemResults(all.filter((item) => !container?.items?.some((ci) => ci.id === item.id)));
+      } catch { /* ignore */ } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [itemSearch, container]);
 
   const openEdit = () => {
     if (!container) return;
@@ -139,14 +155,12 @@ export default function ContainerDetailPage() {
     }
   };
 
-  const addItem = async () => {
-    if (!addItemId.trim()) return;
+  const addItem = async (itemId: string) => {
     try {
-      await axios.post(`/api/containers/${id}/items`, {
-        itemId: addItemId.trim(),
-      });
+      await axios.post(`/api/containers/${id}/items`, { itemId });
       success("Item added to container");
-      setAddItemId("");
+      setItemSearch("");
+      setItemResults([]);
       load();
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err)
@@ -298,19 +312,37 @@ export default function ContainerDetailPage() {
                 Items ({container.items?.length ?? 0})
               </h3>
 
-              {/* Add item by ID */}
-              <div className="flex items-center gap-2">
+              {/* Add item search */}
+              <div className="relative">
                 <input
                   type="text"
-                  placeholder="Item Record ID"
-                  value={addItemId}
-                  onChange={(e) => setAddItemId(e.target.value)}
-                  className="h-8 text-xs px-3 border border-gray-200 rounded-lg w-48 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  placeholder="Search by ref or shipping mark..."
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                  onBlur={() => setTimeout(() => setItemResults([]), 200)}
+                  className="h-8 text-xs px-3 border border-gray-200 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
-                <Button size="sm" onClick={addItem}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  Add
-                </Button>
+                {(itemResults.length > 0 || searchLoading) && (
+                  <div className="absolute top-9 right-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg w-72 max-h-52 overflow-y-auto">
+                    {searchLoading ? (
+                      <p className="px-3 py-2 text-xs text-gray-400">Searching...</p>
+                    ) : (
+                      itemResults.map((item) => (
+                        <button
+                          key={item.id}
+                          onMouseDown={() => addItem(item.id)}
+                          className="w-full text-left px-3 py-2 hover:bg-brand-50 transition-colors border-b border-gray-50 last:border-0"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-brand-700">{item.itemRef}</span>
+                            <code className="text-xs bg-gray-100 px-1 rounded">{item.customerShippingMark ?? "—"}</code>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate mt-0.5">{item.description || "No description"}</p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
