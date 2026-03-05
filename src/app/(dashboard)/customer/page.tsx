@@ -53,7 +53,7 @@ export default function CustomerDashboardPage() {
   return (
     <div className="flex flex-col h-full">
       <Header
-        title={`Hello, ${(typeof appUser?.customerName === "string" ? appUser.customerName.split(" ")[0] : null) ?? appUser?.email?.split("@")[0] ?? "there"} 👋`}
+        title={`Hello, ${(typeof appUser?.customerName === "string" ? appUser.customerName.split(" ")[0] : null) ?? appUser?.email?.split("@")[0] ?? "there"}`}
         subtitle="Here's an overview of your shipments"
       />
 
