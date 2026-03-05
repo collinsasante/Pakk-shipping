@@ -812,14 +812,20 @@ export const containersApi = {
     input: CreateContainerInput,
     createdByEmail: string
   ): Promise<Container> {
-    const count = await countRecords(TABLES.CONTAINERS);
+    let count = 0;
+    try {
+      count = await countRecords(TABLES.CONTAINERS);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      throw new Error(`[step1:countRecords] ${msg}`);
+    }
+
     const containerId = generateContainerId(count + 1);
 
     const fields: FieldSet = {
       ContainerID: containerId,
       Status: "Loading",
       TrackingNumber: input.trackingNumber,
-      // CreatedAt is a "Created time" auto-field — Airtable fills it automatically
       CreatedBy: createdByEmail,
     };
 
@@ -828,9 +834,21 @@ export const containersApi = {
     if (input.notes) fields["Notes"] = input.notes;
     if (input.eta) fields["DepartureDate"] = input.eta;
 
-    console.log("[containersApi.create] creating with fields:", JSON.stringify(Object.keys(fields)));
-    const record = await createRecord(TABLES.CONTAINERS, fields);
-    console.log("[containersApi.create] created record id:", record.id);
+    let record: AirtableRecord<FieldSet>;
+    try {
+      record = await createRecord(TABLES.CONTAINERS, fields);
+    } catch (e) {
+      const airtableErr = e as Record<string, unknown>;
+      const detail = [
+        airtableErr?.["error"],
+        airtableErr?.["message"],
+        airtableErr?.["statusCode"],
+      ]
+        .filter(Boolean)
+        .join(" | ");
+      throw new Error(`[step2:createRecord] fields=${Object.keys(fields).join(",")} error=${detail || JSON.stringify(e)}`);
+    }
+
     return mapContainer(record);
   },
 
