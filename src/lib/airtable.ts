@@ -913,18 +913,26 @@ export const containersApi = {
       notes,
     });
 
-    // ---- ARRIVAL IN GHANA LOGIC ----
-    // When container arrives in Ghana, update ALL items to "Arrived in Ghana"
-    if (newStatus === "Arrived in Ghana" && itemIds.length > 0) {
+    // ---- CASCADE STATUS TO ALL ITEMS ----
+    // Map container statuses to the corresponding item status
+    const containerToItemStatus: Partial<Record<ContainerStatus, ItemStatus>> = {
+      "Shipped to Ghana": "Shipped to Ghana",
+      "Arrived in Ghana": "Arrived in Ghana",
+      "Completed": "Completed",
+      // "Loading" has no corresponding item status — no cascade
+    };
+
+    const targetItemStatus = containerToItemStatus[newStatus];
+    if (targetItemStatus && itemIds.length > 0) {
       await Promise.all(
         itemIds.map((itemId) =>
           itemsApi
             .updateStatus(
               itemId,
-              "Arrived in Ghana",
+              targetItemStatus,
               changedByEmail,
               changedByRole,
-              `Container ${containerId} arrived in Ghana`
+              `Container ${containerId} → ${newStatus}`
             )
             .catch((err) =>
               console.error(`Failed to update item ${itemId}:`, err)
