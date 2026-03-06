@@ -392,7 +392,8 @@ export const customersApi = {
     if (input.status !== undefined) fields["Status"] = input.status;
     if (input.shippingType !== undefined) fields["ShippingType"] = input.shippingType;
     if (input.package !== undefined) fields["CustomerPackage"] = input.package;
-    if (input.exchangeRate !== undefined) fields["ExchangeRate"] = input.exchangeRate;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (input.exchangeRate !== undefined) fields["ExchangeRate"] = input.exchangeRate as any;
     if (input.shippingAddress !== undefined) fields["ShippingAddress"] = input.shippingAddress;
 
     const record = await updateRecord(TABLES.CUSTOMERS, id, fields);
