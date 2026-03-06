@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -16,82 +16,25 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  MessageCircle,
   Settings,
 } from "lucide-react";
 import Image from "next/image";
-import axios from "axios";
 
 const navItems = [
-  {
-    href: "/admin",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    exact: true,
-  },
-  {
-    href: "/admin/customers",
-    label: "Customers",
-    icon: Users,
-  },
-  {
-    href: "/admin/items",
-    label: "Items",
-    icon: Package,
-  },
-  {
-    href: "/admin/containers",
-    label: "Containers",
-    icon: Container,
-  },
-  {
-    href: "/admin/orders",
-    label: "Invoices",
-    icon: ShoppingCart,
-  },
-  {
-    href: "/admin/sorting",
-    label: "Sorting",
-    icon: SortAsc,
-  },
-  {
-    href: "/admin/staff",
-    label: "Staff",
-    icon: ShieldCheck,
-  },
-  {
-    href: "/admin/support",
-    label: "Support",
-    icon: MessageCircle,
-  },
-  {
-    href: "/admin/settings",
-    label: "Settings",
-    icon: Settings,
-  },
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/items", label: "Items", icon: Package },
+  { href: "/admin/containers", label: "Containers", icon: Container },
+  { href: "/admin/orders", label: "Invoices", icon: ShoppingCart },
+  { href: "/admin/sorting", label: "Sorting", icon: SortAsc },
+  { href: "/admin/staff", label: "Staff", icon: ShieldCheck },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const { appUser, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
-  const [openTickets, setOpenTickets] = useState(0);
-
-  // Poll for open support ticket count
-  useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await axios.get("/api/support");
-        const count = (res.data.data as { status: string }[]).filter(
-          (t) => t.status === "open"
-        ).length;
-        setOpenTickets(count);
-      } catch {}
-    };
-    check();
-    const interval = setInterval(check, 90000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <aside
@@ -118,11 +61,7 @@ export function AdminSidebar() {
           className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
 
@@ -133,33 +72,20 @@ export function AdminSidebar() {
             ? pathname === item.href
             : pathname.startsWith(item.href);
           const Icon = item.icon;
-          const isSupport = item.href === "/admin/support";
-
           return (
             <Link
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
               className={cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "text-white bg-white/10"
                   : "text-gray-300 hover:bg-white/5 hover:text-white"
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span className="flex-1">{item.label}</span>}
-              {isSupport && openTickets > 0 && (
-                collapsed ? (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center">
-                    {openTickets > 9 ? "9+" : openTickets}
-                  </span>
-                ) : (
-                  <span className="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                    {openTickets > 99 ? "99+" : openTickets}
-                  </span>
-                )
-              )}
+              {!collapsed && <span>{item.label}</span>}
             </Link>
           );
         })}

@@ -86,7 +86,8 @@ export interface Item {
   id: string; // Airtable record ID
   itemRef: string; // Human-readable ref, e.g. ITM-0001
   photos: ItemPhoto[];
-  weight: number; // in kg
+  weight?: number; // in kg (optional for sea freight)
+  shippingType?: "air" | "sea"; // freight type
   length?: number;
   width?: number;
   height?: number;
@@ -110,7 +111,8 @@ export interface Item {
 
 export interface CreateItemInput {
   photoUrls?: string[];
-  weight: number;
+  weight?: number;
+  shippingType?: "air" | "sea";
   length?: number;
   width?: number;
   height?: number;
@@ -272,6 +274,7 @@ export interface AdminDashboardStats {
   readyForPickup: number;
   totalRevenue: number;
   pendingRevenue: number;
+  totalCbm: number;
   itemsByStatus: Partial<Record<string, number>>;
   pendingOrders: Order[];
 }
@@ -281,6 +284,7 @@ export interface CustomerDashboardStats {
   itemsByStatus: Record<ItemStatus, number>;
   totalOrders: number;
   pendingPayment: number;
+  totalCbm: number;
   recentItems: Item[];
   recentOrders: Order[];
 }
@@ -327,37 +331,6 @@ export interface SortingItem extends Item {
   markedFoundBy?: string;
   markedMissingAt?: string;
   markedMissingBy?: string;
-}
-
-// ============================================================
-// SUPPORT TICKETS
-// ============================================================
-export type SupportMessageType = "text" | "image" | "voice" | "document";
-
-export interface SupportMessage {
-  id: string;
-  sender: "customer" | "admin";
-  senderName: string;
-  content: string;
-  timestamp: string;
-  type?: SupportMessageType;
-  fileUrl?: string;
-  fileName?: string;
-  fileSize?: number;
-  duration?: number; // voice duration in seconds
-  mimeType?: string;
-}
-
-export interface SupportTicket {
-  id: string;
-  ticketRef: string;
-  customerId: string;
-  customerName?: string;
-  subject: string;
-  status: "open" | "resolved";
-  messages: SupportMessage[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 // ============================================================

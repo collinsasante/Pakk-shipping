@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { CustomerSidebar } from "@/components/layout/CustomerSidebar";
+import { WhatsAppButton } from "@/components/shared/WhatsAppButton";
 import { Loader2 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -68,6 +69,8 @@ export default function DashboardLayout({
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex-1 overflow-y-auto">{children}</div>
       </main>
+
+      <WhatsAppButton />
     </div>
   );
 }

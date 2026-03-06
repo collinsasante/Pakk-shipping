@@ -46,10 +46,15 @@ export async function POST(request: NextRequest) {
 
     if (data.flow === "email") {
       // ---- FLOW 1: Email/Password ----
-      // Check if email already has an Airtable user record
-      const existingUser = await usersApi.getByEmail(data.email);
-      if (existingUser) {
+      const [existingByEmail, existingByPhone] = await Promise.all([
+        customersApi.getByEmail(data.email),
+        customersApi.getByPhone(data.phone),
+      ]);
+      if (existingByEmail) {
         return badRequestResponse("An account with this email already exists");
+      }
+      if (existingByPhone) {
+        return badRequestResponse("An account with this phone number already exists");
       }
 
       // Create Firebase user
@@ -79,6 +84,18 @@ export async function POST(request: NextRequest) {
           },
           { status: 200 }
         );
+      }
+
+      // Check for duplicate email or phone in Customers table
+      const [existingByEmail, existingByPhone] = await Promise.all([
+        customersApi.getByEmail(email),
+        customersApi.getByPhone(data.phone),
+      ]);
+      if (existingByEmail) {
+        return badRequestResponse("An account with this email already exists");
+      }
+      if (existingByPhone) {
+        return badRequestResponse("An account with this phone number already exists");
       }
     }
 

@@ -142,10 +142,18 @@ export default function ItemsPage() {
             },
             {
               key: "weight",
-              header: "Weight",
-              render: (item) => (
-                <span className="text-sm">{item.weight} kg</span>
-              ),
+              header: "Weight / CBM",
+              render: (item) => {
+                if (item.shippingType === "sea" || (!item.shippingType && item.length && item.width && item.height)) {
+                  if (item.length && item.width && item.height) {
+                    const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
+                    const cbm = (item.length * item.width * item.height * factor) / 1_000_000;
+                    return <span className="text-sm">{cbm.toFixed(4)} m³</span>;
+                  }
+                }
+                if (item.weight) return <span className="text-sm">{item.weight} kg</span>;
+                return <span className="text-xs text-gray-400">—</span>;
+              },
             },
             {
               key: "status",
@@ -179,16 +187,6 @@ export default function ItemsPage() {
                   {formatDateTime(item.dateReceived)}
                 </span>
               ),
-            },
-            {
-              key: "cbm",
-              header: "CBM",
-              render: (item) => {
-                if (!item.length || !item.width || !item.height) return <span className="text-xs text-gray-400">—</span>;
-                const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
-                const cbm = (item.length * item.width * item.height * factor) / 1_000_000;
-                return <span className="text-xs text-gray-700">{cbm.toFixed(4)} m³</span>;
-              },
             },
             {
               key: "actions",

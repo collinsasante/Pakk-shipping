@@ -82,7 +82,7 @@ export const TABLES = {
   STATUS_HISTORY: "StatusHistory",
   ACTIVITY_LOGS: "ActivityLogs",
   USERS: "Users",
-  SUPPORT: "SupportTickets",
+
 } as const;
 
 // ============================================================
@@ -178,13 +178,14 @@ function mapItem(record: AirtableRecord<FieldSet>): Item {
     id: record.id,
     itemRef: (f["ItemRef"] as string) ?? record.id,
     photos,
-    weight: (f["Weight"] as number) ?? 0,
+    weight: (f["Weight"] as number) || undefined,
+    shippingType: ((f["FreightType"] as string) || undefined) as "air" | "sea" | undefined,
     length: (f["Length"] as number) ?? undefined,
     width: (f["Width"] as number) ?? undefined,
     height: (f["Height"] as number) ?? undefined,
     dimensionUnit: ((f["DimensionUnit"] as string) ?? "cm") as "cm" | "inches",
     description: (f["Description"] as string) ?? "",
-    dateReceived: (f["DateReceived"] as string) ?? toISOString(),
+    dateReceived: (f["DateReceived"] as string) || toISOString(),
     trackingNumber: (f["TrackingNumber"] as string) ?? undefined,
     customerId: ((f["Customer"] as string[]) ?? [])[0] ?? "",
     customerName: (Array.isArray(f["CustomerName"]) ? (f["CustomerName"] as string[])[0] : (f["CustomerName"] as string)) ?? undefined,
@@ -389,7 +390,7 @@ export const customersApi = {
     if (input.notes !== undefined) fields["Notes"] = input.notes;
     if (input.status !== undefined) fields["Status"] = input.status;
     if (input.shippingType !== undefined) fields["ShippingType"] = input.shippingType;
-    if (input.exchangeRate !== undefined) fields["ExchangeRate"] = input.exchangeRate ?? undefined;
+    if (input.exchangeRate !== undefined) fields["ExchangeRate"] = input.exchangeRate;
     if (input.shippingAddress !== undefined) fields["ShippingAddress"] = input.shippingAddress;
 
     const record = await updateRecord(TABLES.CUSTOMERS, id, fields);
@@ -499,7 +500,6 @@ export const itemsApi = {
 
     const fields: FieldSet = {
       ItemRef: itemRef,
-      Weight: input.weight,
       DimensionUnit: input.dimensionUnit ?? "cm",
       Description: input.description,
       DateReceived: input.dateReceived,
@@ -510,6 +510,8 @@ export const itemsApi = {
       // CreatedAt is a "Created time" field — Airtable fills it automatically
       CreatedBy: createdByEmail,
     };
+    if (input.weight !== undefined) fields["Weight"] = input.weight;
+    if (input.shippingType) fields["FreightType"] = input.shippingType;
 
     if (input.length) fields["Length"] = input.length;
     if (input.width) fields["Width"] = input.width;
@@ -1248,6 +1250,15 @@ export const dashboardApi = {
       .slice(0, 8)
       .map(mapOrder);
 
+    const totalCbm = allItems.reduce((sum, r) => {
+      const l = r.fields["Length"] as number;
+      const w = r.fields["Width"] as number;
+      const h = r.fields["Height"] as number;
+      if (!l || !w || !h) return sum;
+      const factor = (r.fields["DimensionUnit"] as string) === "inches" ? 16.387064 : 1;
+      return sum + (l * w * h * factor) / 1_000_000;
+    }, 0);
+
     return {
       totalCustomers: allCustomers.length,
       activeCustomers,
@@ -1258,6 +1269,7 @@ export const dashboardApi = {
       readyForPickup,
       totalRevenue,
       pendingRevenue,
+      totalCbm,
       itemsByStatus,
       pendingOrders,
     };
@@ -1281,149 +1293,21 @@ export const dashboardApi = {
       .filter((o) => o.status === "Pending")
       .reduce((sum, o) => sum + o.invoiceAmount, 0);
 
+    const totalCbm = items.reduce((sum, item) => {
+      if (!item.length || !item.width || !item.height) return sum;
+      const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
+      return sum + (item.length * item.width * item.height * factor) / 1_000_000;
+    }, 0);
+
     return {
       totalItems: items.length,
       itemsByStatus,
       totalOrders: orders.length,
       pendingPayment,
+      totalCbm,
       recentItems: items.slice(0, 5),
       recentOrders: orders.slice(0, 5),
     };
-  },
-};
-
-// ============================================================
-// SUPPORT TICKETS API
-// ============================================================
-import type { SupportMessage, SupportTicket } from "@/types";
-
-function mapSupportTicket(record: AirtableRecord<FieldSet>): SupportTicket {
-  const f = record.fields;
-  let messages: SupportMessage[] = [];
-  try {
-    messages = JSON.parse((f["Messages"] as string) ?? "[]");
-  } catch {
-    messages = [];
-  }
-  return {
-    id: record.id,
-    ticketRef: (f["TicketRef"] as string) ?? record.id,
-    customerId: ((f["Customer"] as string[]) ?? [])[0] ?? "",
-    customerName: (f["CustomerName"] as string) ?? undefined,
-    subject: (f["Subject"] as string) ?? "",
-    status: ((f["Status"] as string) ?? "open") as "open" | "resolved",
-    messages,
-    createdAt: (f["CreatedAt"] as string) ?? toISOString(),
-    updatedAt: (f["UpdatedAt"] as string) ?? toISOString(),
-  };
-}
-
-export const supportApi = {
-  async list(customerId?: string): Promise<SupportTicket[]> {
-    const records = await getAllRecords(TABLES.SUPPORT);
-    let tickets = records.map(mapSupportTicket);
-    if (customerId) {
-      tickets = tickets.filter((t) => t.customerId === customerId);
-    }
-    // Resolve customer names if lookup field missing
-    if (tickets.some((t) => t.customerId && !t.customerName)) {
-      const allCustomers = await customersApi.list();
-      const customerMap = new Map(allCustomers.map((c) => [c.id, c.name]));
-      tickets = tickets.map((t) => ({
-        ...t,
-        customerName: t.customerName ?? customerMap.get(t.customerId),
-      }));
-    }
-    return tickets.sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
-  },
-
-  async getById(id: string): Promise<SupportTicket> {
-    const record = await getRecord(TABLES.SUPPORT, id);
-    const ticket = mapSupportTicket(record);
-    if (ticket.customerId && !ticket.customerName) {
-      const customer = await customersApi.getById(ticket.customerId).catch(() => null);
-      if (customer) ticket.customerName = customer.name;
-    }
-    return ticket;
-  },
-
-  async create(
-    customerId: string,
-    customerName: string,
-    subject: string,
-    content: string
-  ): Promise<SupportTicket> {
-    const count = await countRecords(TABLES.SUPPORT);
-    const ticketRef = `SUP-${String(count + 1).padStart(3, "0")}`;
-    const messages: SupportMessage[] = [
-      {
-        id: `msg_${Date.now()}`,
-        sender: "customer",
-        senderName: customerName,
-        content,
-        timestamp: toISOString(),
-      },
-    ];
-    const record = await createRecord(TABLES.SUPPORT, {
-      TicketRef: ticketRef,
-      Customer: [customerId],
-      Subject: subject,
-      Status: "open",
-      Messages: JSON.stringify(messages),
-    });
-    return mapSupportTicket(record);
-  },
-
-  async addMessage(
-    id: string,
-    sender: "customer" | "admin",
-    senderName: string,
-    content: string,
-    attachment?: {
-      type: "image" | "voice" | "document";
-      fileUrl: string;
-      fileName: string;
-      fileSize: number;
-      duration?: number;
-      mimeType?: string;
-    }
-  ): Promise<SupportTicket> {
-    const existing = await getRecord(TABLES.SUPPORT, id);
-    let messages: SupportMessage[] = [];
-    try {
-      messages = JSON.parse((existing.fields["Messages"] as string) ?? "[]");
-    } catch {
-      messages = [];
-    }
-    messages.push({
-      id: `msg_${Date.now()}`,
-      sender,
-      senderName,
-      content,
-      timestamp: toISOString(),
-      type: attachment ? attachment.type : "text",
-      ...(attachment && {
-        fileUrl: attachment.fileUrl,
-        fileName: attachment.fileName,
-        fileSize: attachment.fileSize,
-        duration: attachment.duration,
-        mimeType: attachment.mimeType,
-      }),
-    });
-    const record = await updateRecord(TABLES.SUPPORT, id, {
-      Messages: JSON.stringify(messages),
-      Status: "open",
-    });
-    return mapSupportTicket(record);
-  },
-
-  async updateStatus(id: string, status: "open" | "resolved"): Promise<SupportTicket> {
-    const record = await updateRecord(TABLES.SUPPORT, id, {
-      Status: status,
-    });
-    return mapSupportTicket(record);
   },
 };
 

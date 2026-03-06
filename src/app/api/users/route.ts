@@ -19,8 +19,10 @@ const CreateUserSchema = z.object({
 
 function generateTempPassword(): string {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
   let p = "PAKK-";
-  for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 8; i++) p += chars[bytes[i] % chars.length];
   return p;
 }
 
@@ -101,7 +103,7 @@ export async function POST(request: NextRequest) {
     return Response.json(
       {
         success: true,
-        data: { user: appUser, emailSent },
+        data: { user: appUser, emailSent, tempPassword },
         message: `Account created for ${email}`,
       },
       { status: 201 }

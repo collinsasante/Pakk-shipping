@@ -10,7 +10,8 @@ import {
 import { z } from "zod";
 
 const CreateItemSchema = z.object({
-  weight: z.number().positive("Weight must be positive").max(10000),
+  weight: z.number().positive("Weight must be positive").max(10000).optional(),
+  shippingType: z.enum(["air", "sea"]).optional(),
   length: z.number().positive().max(10000).optional(),
   width: z.number().positive().max(10000).optional(),
   height: z.number().positive().max(10000).optional(),

@@ -63,7 +63,7 @@ export default function StaffPage() {
     setLoading(true);
     try {
       const res = await axios.get("/api/users");
-      setUsers(res.data.data);
+      setUsers((res.data.data as AppUser[]).filter((u) => u.role !== "customer"));
     } catch {
       error("Failed to load users");
     } finally {

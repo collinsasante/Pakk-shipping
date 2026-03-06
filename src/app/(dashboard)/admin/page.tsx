@@ -11,6 +11,7 @@ import {
   SortAsc,
   AlertTriangle,
   HandCoins,
+  Box,
 } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
@@ -93,6 +94,15 @@ export default function AdminDashboardPage() {
             iconColor="text-brand-600"
             iconBg="bg-brand-50"
             href="/admin/sorting"
+          />
+          <StatCard
+            title="Total CBM"
+            value={stats ? `${stats.totalCbm.toFixed(2)} m³` : "—"}
+            subtitle="All items"
+            icon={Box}
+            iconColor="text-teal-600"
+            iconBg="bg-teal-50"
+            href="/admin/items"
           />
         </div>
       </div>

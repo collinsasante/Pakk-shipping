@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       { success: true, data: { user: appUser, uid: decoded.uid, email: decoded.email } },
       {
         status: 200,
-        headers: { "Set-Cookie": `auth-token=${idToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800` },
+        headers: { "Set-Cookie": `auth-token=${idToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=604800` },
       }
     );
   } catch (err: unknown) {
@@ -141,7 +141,7 @@ export async function DELETE() {
     { success: true, message: "Signed out" },
     {
       status: 200,
-      headers: { "Set-Cookie": `auth-token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0` },
+      headers: { "Set-Cookie": `auth-token=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0` },
     }
   );
 }

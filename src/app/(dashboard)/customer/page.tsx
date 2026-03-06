@@ -14,6 +14,7 @@ import {
   DollarSign,
   Clock,
   MapPin,
+  Box,
 } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
@@ -59,7 +60,7 @@ export default function CustomerDashboardPage() {
 
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatCard
             title="Total Items"
             value={stats?.totalItems ?? "—"}
@@ -94,6 +95,15 @@ export default function CustomerDashboardPage() {
             icon={MapPin}
             iconColor="text-green-600"
             iconBg="bg-green-50"
+            href="/customer/items"
+          />
+          <StatCard
+            title="Total CBM"
+            value={stats ? `${stats.totalCbm.toFixed(2)} m³` : "—"}
+            subtitle="Your shipments"
+            icon={Box}
+            iconColor="text-teal-600"
+            iconBg="bg-teal-50"
             href="/customer/items"
           />
         </div>
@@ -180,7 +190,11 @@ export default function CustomerDashboardPage() {
                       {selectedItem.description}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {selectedItem.weight} kg
+                      {selectedItem.shippingType === "sea" && selectedItem.length && selectedItem.width && selectedItem.height
+                        ? `${((selectedItem.length * selectedItem.width * selectedItem.height * (selectedItem.dimensionUnit === "inches" ? 16.387064 : 1)) / 1_000_000).toFixed(4)} m³`
+                        : selectedItem.weight
+                        ? `${selectedItem.weight} kg`
+                        : ""}
                     </p>
                   </div>
                   <TrackingTimeline

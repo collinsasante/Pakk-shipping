@@ -102,10 +102,18 @@ export default function CustomerItemsPage() {
               },
               {
                 key: "weight",
-                header: "Weight",
-                render: (item) => (
-                  <span className="text-sm">{item.weight} kg</span>
-                ),
+                header: "Weight / CBM",
+                render: (item) => {
+                  if (item.shippingType === "sea" || (!item.shippingType && item.length && item.width && item.height)) {
+                    if (item.length && item.width && item.height) {
+                      const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
+                      const cbm = (item.length * item.width * item.height * factor) / 1_000_000;
+                      return <span className="text-sm">{cbm.toFixed(4)} m³</span>;
+                    }
+                  }
+                  if (item.weight) return <span className="text-sm">{item.weight} kg</span>;
+                  return <span className="text-xs text-gray-400">—</span>;
+                },
               },
               {
                 key: "status",
@@ -182,7 +190,14 @@ export default function CustomerItemsPage() {
               {/* Item details */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Details</p>
-                <DetailRow label="Weight" value={`${selectedItem.weight} kg`} />
+                {selectedItem.shippingType === "sea" && selectedItem.length && selectedItem.width && selectedItem.height ? (
+                  <DetailRow
+                    label="CBM"
+                    value={`${((selectedItem.length * selectedItem.width * selectedItem.height * (selectedItem.dimensionUnit === "inches" ? 16.387064 : 1)) / 1_000_000).toFixed(4)} m³`}
+                  />
+                ) : selectedItem.weight ? (
+                  <DetailRow label="Weight" value={`${selectedItem.weight} kg`} />
+                ) : null}
                 {selectedItem.length && selectedItem.width && selectedItem.height && (
                   <DetailRow
                     label="Dimensions"

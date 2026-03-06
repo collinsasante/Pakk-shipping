@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -13,19 +13,15 @@ import {
   LogOut,
   Copy,
   CheckCheck,
-  MessageCircle,
   Settings,
 } from "lucide-react";
 import Image from "next/image";
-import axios from "axios";
-import type { SupportTicket } from "@/types";
 
 const navItems = [
   { href: "/customer", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/customer/items", label: "My Items", icon: Package },
   { href: "/customer/orders", label: "My Invoices", icon: ShoppingCart },
   { href: "/customer/tracking", label: "Tracking", icon: MapPin },
-  { href: "/customer/support", label: "Support", icon: MessageCircle },
   { href: "/customer/settings", label: "Settings", icon: Settings },
 ];
 
@@ -33,7 +29,6 @@ export function CustomerSidebar() {
   const pathname = usePathname();
   const { appUser, signOut } = useAuth();
   const [copied, setCopied] = useState(false);
-  const [hasUnread, setHasUnread] = useState(false);
 
   const shippingMark = appUser?.shippingMark ?? "";
 
@@ -45,34 +40,12 @@ export function CustomerSidebar() {
     }
   };
 
-  // Poll for unread admin messages
-  useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await axios.get("/api/support");
-        const tickets: SupportTicket[] = res.data.data;
-        const unread = tickets.some(
-          (t) =>
-            t.status === "open" &&
-            t.messages.length > 0 &&
-            t.messages[t.messages.length - 1].sender === "admin"
-        );
-        setHasUnread(unread);
-      } catch {}
-    };
-    check();
-    const interval = setInterval(check, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <aside className="flex flex-col h-full w-64 bg-white border-r border-gray-200">
       {/* Logo */}
       <div className="flex items-center gap-2 h-16 px-6 border-b border-gray-100">
         <Image src="/logowithouttext.png" alt="Pakkmaxx" width={32} height={32} className="rounded-lg" />
-        <span className="font-bold text-lg tracking-tight text-gray-900">
-          Pakkmaxx
-        </span>
+        <span className="font-bold text-lg tracking-tight text-gray-900">Pakkmaxx</span>
       </div>
 
       {/* Shipping Mark Card */}
@@ -123,9 +96,6 @@ export function CustomerSidebar() {
                 )}
               />
               <span className="flex-1">{item.label}</span>
-              {item.href === "/customer/support" && hasUnread && !isActive && (
-                <span className="w-2 h-2 bg-red-500 rounded-full" />
-              )}
             </Link>
           );
         })}

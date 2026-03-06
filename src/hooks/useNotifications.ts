@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
-import type { SupportTicket, Item } from "@/types";
+import type { Item } from "@/types";
 
 export interface AppNotification {
   id: string;
@@ -67,45 +67,6 @@ export function useNotifications(role: string) {
     if (!role) return;
 
     const newNotifs: AppNotification[] = [];
-
-    // ── Support messages ──────────────────────────────────────────
-    try {
-      const res = await axios.get("/api/support");
-      const tickets: SupportTicket[] = res.data.data;
-
-      for (const ticket of tickets) {
-        for (const msg of ticket.messages) {
-          const relevant =
-            role === "customer"
-              ? msg.sender === "admin"
-              : msg.sender === "customer";
-          if (!relevant) continue;
-
-          if (!seenIds.current.has(msg.id)) {
-            seenIds.current.add(msg.id);
-
-            if (initialized.current) {
-              newNotifs.push({
-                id: msg.id,
-                title:
-                  role === "customer"
-                    ? "Support reply received"
-                    : `New message — ${ticket.subject}`,
-                body:
-                  msg.content.length > 70
-                    ? msg.content.slice(0, 70) + "…"
-                    : msg.content,
-                time: msg.timestamp,
-                href:
-                  role === "customer"
-                    ? "/customer/support"
-                    : "/admin/support",
-              });
-            }
-          }
-        }
-      }
-    } catch {}
 
     // ── Item status changes (customers only) ──────────────────────
     if (role === "customer") {

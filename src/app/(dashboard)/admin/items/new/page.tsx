@@ -71,6 +71,7 @@ export default function NewItemPage() {
     customerId: searchParams?.get("customerId") ?? "",
     description: "",
     weight: "",
+    shippingType: "sea" as "air" | "sea",
     length: "",
     width: "",
     height: "",
@@ -88,6 +89,15 @@ export default function NewItemPage() {
   useEffect(() => {
     axios.get("/api/customers").then((res) => setCustomers(res.data.data));
   }, []);
+
+  // Auto-set shippingType from selected customer
+  useEffect(() => {
+    if (!form.customerId) return;
+    const customer = customers.find((c) => c.id === form.customerId);
+    if (customer?.shippingType) {
+      setForm((prev) => ({ ...prev, shippingType: customer.shippingType as "air" | "sea" }));
+    }
+  }, [form.customerId, customers]);
 
   const customerOptions = [
     { value: "", label: "Select a customer..." },
@@ -146,7 +156,7 @@ export default function NewItemPage() {
 
       const payload = {
         ...form,
-        weight: parseFloat(form.weight),
+        weight: form.weight ? parseFloat(form.weight) : undefined,
         length: form.length ? parseFloat(form.length) : undefined,
         width: form.width ? parseFloat(form.width) : undefined,
         height: form.height ? parseFloat(form.height) : undefined,
@@ -205,24 +215,33 @@ export default function NewItemPage() {
                 rows={3}
               />
               <div className="grid grid-cols-2 gap-4">
+                <Select
+                  label="Freight Type"
+                  options={[
+                    { value: "sea", label: "Sea Freight (CBM)" },
+                    { value: "air", label: "Air Freight (Weight)" },
+                  ]}
+                  value={form.shippingType}
+                  onChange={(e) => setForm({ ...form, shippingType: e.target.value as "air" | "sea" })}
+                />
                 <Input
-                  label="Weight (kg)"
+                  label={`Weight (kg)${form.shippingType === "sea" ? " (optional)" : ""}`}
                   type="number"
                   step="0.01"
                   min="0"
                   placeholder="0.00"
                   value={form.weight}
                   onChange={(e) => setForm({ ...form, weight: e.target.value })}
-                  required
-                />
-                <Input
-                  label="Date & Time Received"
-                  type="datetime-local"
-                  value={form.dateReceived}
-                  onChange={(e) => setForm({ ...form, dateReceived: e.target.value })}
-                  required
+                  required={form.shippingType === "air"}
                 />
               </div>
+              <Input
+                label="Date & Time Received"
+                type="datetime-local"
+                value={form.dateReceived}
+                onChange={(e) => setForm({ ...form, dateReceived: e.target.value })}
+                required
+              />
               <Input
                 label="Tracking Number (optional)"
                 placeholder="UPS/FedEx/USPS tracking number"
