@@ -8,12 +8,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { DataTable } from "@/components/shared/DataTable";
-import type { Customer } from "@/types";
-import { Settings, DollarSign, Users, Save, RefreshCw } from "lucide-react";
+import type { Customer, CustomerPackage } from "@/types";
+import { Settings, DollarSign, Users, Save, RefreshCw, Package } from "lucide-react";
 import axios from "axios";
 
 const RATES_KEY = "pakk_exchange_rates";
 const COMPANY_KEY = "pakk_company_settings";
+
+const PACKAGE_OPTIONS: { value: CustomerPackage | ""; label: string }[] = [
+  { value: "", label: "No package" },
+  { value: "standard", label: "Standard" },
+  { value: "discounted", label: "Discounted" },
+  { value: "premium", label: "Premium" },
+];
+
+const PACKAGE_COLORS: Record<CustomerPackage, string> = {
+  standard: "bg-gray-100 text-gray-700",
+  discounted: "bg-blue-50 text-blue-700",
+  premium: "bg-amber-50 text-amber-700",
+};
 
 interface CompanySettings {
   name: string;
@@ -24,7 +37,7 @@ interface CompanySettings {
 
 export default function AdminSettingsPage() {
   const { success, error } = useToast();
-  const [activeTab, setActiveTab] = useState<"company" | "exchange" | "customers">("company");
+  const [activeTab, setActiveTab] = useState<"company" | "exchange" | "packages">("company");
 
   // Company settings (localStorage)
   const [company, setCompany] = useState<CompanySettings>({
@@ -38,12 +51,12 @@ export default function AdminSettingsPage() {
   const [defaultRate, setDefaultRate] = useState("12.5");
   const [shippingRatePerCbm, setShippingRatePerCbm] = useState("200");
 
-  // Per-customer rates
+  // Per-customer packages
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [savingCustomerId, setSavingCustomerId] = useState<string | null>(null);
-  const [customerRates, setCustomerRates] = useState<Record<string, string>>({});
+  const [customerPackages, setCustomerPackages] = useState<Record<string, CustomerPackage | "">>({});
 
   useEffect(() => {
     try {
@@ -86,14 +99,11 @@ export default function AdminSettingsPage() {
       const res = await axios.get("/api/customers", { params: { search } });
       const list: Customer[] = res.data.data;
       setCustomers(list);
-      // Seed local rate state from customer data
-      const rateMap: Record<string, string> = {};
+      const pkgMap: Record<string, CustomerPackage | ""> = {};
       list.forEach((c) => {
-        rateMap[c.id] = (c as Customer & { exchangeRate?: number }).exchangeRate
-          ? String((c as Customer & { exchangeRate?: number }).exchangeRate)
-          : "";
+        pkgMap[c.id] = c.package ?? "";
       });
-      setCustomerRates((prev) => ({ ...rateMap, ...prev }));
+      setCustomerPackages((prev) => ({ ...pkgMap, ...prev }));
     } catch {
       error("Failed to load customers");
     } finally {
@@ -102,22 +112,19 @@ export default function AdminSettingsPage() {
   }, [error]);
 
   useEffect(() => {
-    if (activeTab === "customers") loadCustomers();
+    if (activeTab === "packages") loadCustomers();
   }, [activeTab, loadCustomers]);
 
-  const saveCustomerRate = async (customerId: string) => {
-    const rateStr = customerRates[customerId];
-    const rate = rateStr ? parseFloat(rateStr) : undefined;
-    if (rateStr && (isNaN(rate!) || rate! <= 0)) {
-      error("Invalid rate", "Enter a valid number or leave blank to use default");
-      return;
-    }
+  const saveCustomerPackage = async (customerId: string) => {
+    const pkg = customerPackages[customerId];
     setSavingCustomerId(customerId);
     try {
-      await axios.patch(`/api/customers/${customerId}`, { exchangeRate: rate ?? null });
-      success("Rate saved");
+      await axios.patch(`/api/customers/${customerId}`, {
+        package: pkg || undefined,
+      });
+      success("Package saved");
     } catch {
-      error("Failed to save rate");
+      error("Failed to save package");
     } finally {
       setSavingCustomerId(null);
     }
@@ -126,7 +133,7 @@ export default function AdminSettingsPage() {
   const tabs = [
     { id: "company" as const, label: "Company", icon: Settings },
     { id: "exchange" as const, label: "Exchange Rates", icon: DollarSign },
-    { id: "customers" as const, label: "Per-Customer Rates", icon: Users },
+    { id: "packages" as const, label: "Customer Packages", icon: Package },
   ];
 
   return (
@@ -208,7 +215,7 @@ export default function AdminSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-gray-500">
-                  Set the default USD → GHS exchange rate used for all invoices. Individual customers can have their own rates in the "Per-Customer Rates" tab.
+                  Set the default USD → GHS exchange rate used for all invoices.
                 </p>
                 <Input
                   label="USD → GHS Rate"
@@ -244,13 +251,22 @@ export default function AdminSettingsPage() {
           </div>
         )}
 
-        {/* Per-Customer Rates */}
-        {activeTab === "customers" && (
+        {/* Customer Packages */}
+        {activeTab === "packages" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">
-                Set custom exchange rates for individual customers. Leave blank to use the default rate.
-              </p>
+              <div>
+                <p className="text-sm text-gray-500">
+                  Assign a pricing package to each customer.
+                </p>
+                <div className="flex gap-2 mt-2">
+                  {(["standard", "discounted", "premium"] as CustomerPackage[]).map((pkg) => (
+                    <span key={pkg} className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${PACKAGE_COLORS[pkg]}`}>
+                      {pkg}
+                    </span>
+                  ))}
+                </div>
+              </div>
               <div className="flex items-center gap-3">
                 <SearchBar
                   placeholder="Search customers..."
@@ -268,6 +284,7 @@ export default function AdminSettingsPage() {
                 </button>
               </div>
             </div>
+
             <DataTable
               columns={[
                 {
@@ -286,22 +303,31 @@ export default function AdminSettingsPage() {
                   render: (c) => <span className="text-sm text-gray-500">{c.email}</span>,
                 },
                 {
-                  key: "exchangeRate",
-                  header: "Custom Rate (GHS per $1)",
+                  key: "currentPackage",
+                  header: "Current Package",
+                  render: (c) => c.package ? (
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${PACKAGE_COLORS[c.package]}`}>
+                      {c.package}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">None</span>
+                  ),
+                },
+                {
+                  key: "package",
+                  header: "Assign Package",
                   render: (c) => (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder={`Default (${defaultRate})`}
-                        value={customerRates[c.id] ?? ""}
-                        onChange={(e) =>
-                          setCustomerRates((prev) => ({ ...prev, [c.id]: e.target.value }))
-                        }
-                        className="h-8 w-32 text-sm px-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                      />
-                    </div>
+                    <select
+                      value={customerPackages[c.id] ?? ""}
+                      onChange={(e) =>
+                        setCustomerPackages((prev) => ({ ...prev, [c.id]: e.target.value as CustomerPackage | "" }))
+                      }
+                      className="h-8 text-sm px-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    >
+                      {PACKAGE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
                   ),
                 },
                 {
@@ -312,7 +338,7 @@ export default function AdminSettingsPage() {
                       size="sm"
                       variant="outline"
                       loading={savingCustomerId === c.id}
-                      onClick={() => saveCustomerRate(c.id)}
+                      onClick={() => saveCustomerPackage(c.id)}
                     >
                       Save
                     </Button>

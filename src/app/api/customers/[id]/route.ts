@@ -18,6 +18,7 @@ const UpdateCustomerSchema = z.object({
   notes: z.string().max(2000).optional(),
   status: z.enum(["active", "inactive"]).optional(),
   shippingType: z.enum(["air", "sea"]).optional(),
+  package: z.enum(["standard", "discounted", "premium"]).optional(),
   exchangeRate: z.number().positive().optional().nullable(),
   shippingAddress: z.string().max(500).optional(),
 });

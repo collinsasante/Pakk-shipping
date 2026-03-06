@@ -23,6 +23,8 @@ interface DataTableProps<T> {
   onPageChange?: (page: number) => void;
   // Optional row click
   onRowClick?: (item: T) => void;
+  // Optional per-row class names
+  rowClassName?: (item: T) => string;
 }
 
 export function DataTable<T>({
@@ -36,6 +38,7 @@ export function DataTable<T>({
   totalPages = 1,
   onPageChange,
   onRowClick,
+  rowClassName,
 }: DataTableProps<T>) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -88,7 +91,8 @@ export function DataTable<T>({
                   onClick={() => onRowClick?.(item)}
                   className={cn(
                     "hover:bg-gray-50 transition-colors",
-                    onRowClick && "cursor-pointer"
+                    onRowClick && "cursor-pointer",
+                    rowClassName?.(item)
                   )}
                 >
                   {columns.map((col) => (

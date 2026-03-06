@@ -22,8 +22,8 @@ export default function CustomerTrackingPage() {
   const fetchHistory = useCallback(async (itemId: string) => {
     setHistoryLoading(true);
     try {
-      const res = await axios.get(`/api/items/${itemId}`);
-      setSelectedHistory([]);
+      const res = await axios.get(`/api/items/${itemId}/history`);
+      setSelectedHistory(res.data.data ?? []);
     } catch {
       setSelectedHistory([]);
     } finally {

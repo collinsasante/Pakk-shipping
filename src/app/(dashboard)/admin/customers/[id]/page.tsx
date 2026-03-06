@@ -43,7 +43,7 @@ export default function CustomerDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", notes: "", status: "active" as "active" | "inactive", shippingType: "" as "air" | "sea" | "", shippingAddress: "" });
+  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", notes: "", status: "active" as "active" | "inactive", shippingType: "" as "air" | "sea" | "", shippingAddress: "", package: "" as "standard" | "discounted" | "premium" | "" });
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -61,6 +61,7 @@ export default function CustomerDetailPage() {
             status: c.status ?? "active",
             shippingType: c.shippingType ?? "",
             shippingAddress: c.shippingAddress ?? "",
+            package: c.package ?? "",
           });
           setEditing(true);
         }
@@ -83,6 +84,7 @@ export default function CustomerDetailPage() {
       status: customer.status ?? "active",
       shippingType: customer.shippingType ?? "",
       shippingAddress: customer.shippingAddress ?? "",
+      package: customer.package ?? "",
     });
     setEditing(true);
   };
@@ -94,6 +96,7 @@ export default function CustomerDetailPage() {
         ...editForm,
         shippingType: editForm.shippingType || undefined,
         shippingAddress: editForm.shippingAddress || undefined,
+        package: editForm.package || undefined,
       });
       setCustomer((prev) => prev ? { ...prev, ...res.data.data } : prev);
       success("Customer updated");
@@ -232,6 +235,17 @@ export default function CustomerDetailPage() {
                       ]}
                     />
                   </div>
+                  <Select
+                    label="Package"
+                    value={editForm.package}
+                    onChange={(e) => setEditForm({ ...editForm, package: e.target.value as "standard" | "discounted" | "premium" | "" })}
+                    options={[
+                      { value: "", label: "No package" },
+                      { value: "standard", label: "Standard" },
+                      { value: "discounted", label: "Discounted" },
+                      { value: "premium", label: "Premium" },
+                    ]}
+                  />
                   <Textarea label="Notes (optional)" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={2} />
                   <div className="flex gap-2 pt-1">
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditing(false)} disabled={savingEdit}>Cancel</Button>
@@ -263,6 +277,17 @@ export default function CustomerDetailPage() {
                     <InfoRow icon={ShoppingCart} label="Total Orders" value={String(customer.orders?.length ?? 0)} />
                     {customer.shippingType && (
                       <InfoRow icon={Package} label="Shipping Type" value={customer.shippingType === "air" ? "Air Freight" : "Sea Freight"} />
+                    )}
+                    {customer.package && (
+                      <InfoRow icon={Package} label="Package">
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize inline-block mt-0.5 ${
+                          customer.package === "premium" ? "bg-amber-50 text-amber-700" :
+                          customer.package === "discounted" ? "bg-blue-50 text-blue-700" :
+                          "bg-gray-100 text-gray-700"
+                        }`}>
+                          {customer.package}
+                        </span>
+                      </InfoRow>
                     )}
                     <InfoRow icon={Package} label="Member Since" value={formatDate(customer.createdAt)} />
                   </div>

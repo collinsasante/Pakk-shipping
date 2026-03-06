@@ -9,8 +9,8 @@ import { Select } from "@/components/ui/select";
 import { TrackingTimeline } from "@/components/shared/TrackingTimeline";
 import { formatDate } from "@/lib/utils";
 import { ITEM_STATUS_STEPS } from "@/lib/utils";
-import type { Item, ItemStatus } from "@/types";
-import { Package, X, Hash, Weight, Calendar, Truck, ShoppingCart, Box } from "lucide-react";
+import type { Item, ItemStatus, StatusHistory } from "@/types";
+import { Package, X, Hash } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 
@@ -35,6 +35,8 @@ export default function CustomerItemsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ItemStatus | "">("");
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedHistory, setSelectedHistory] = useState<StatusHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const load = useCallback(
     async (search?: string, status?: string) => {
@@ -55,6 +57,28 @@ export default function CustomerItemsPage() {
     },
     [error]
   );
+
+  const fetchHistory = useCallback(async (itemId: string) => {
+    setHistoryLoading(true);
+    try {
+      const res = await axios.get(`/api/items/${itemId}/history`);
+      setSelectedHistory(res.data.data ?? []);
+    } catch {
+      setSelectedHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  const selectItem = (item: Item) => {
+    if (selectedItem?.id === item.id) {
+      setSelectedItem(null);
+      setSelectedHistory([]);
+    } else {
+      setSelectedItem(item);
+      fetchHistory(item.id);
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -101,6 +125,18 @@ export default function CustomerItemsPage() {
                 ),
               },
               {
+                key: "trackingNumber",
+                header: "Tracking #",
+                render: (item) => item.trackingNumber ? (
+                  <div className="flex items-center gap-1.5">
+                    <Hash className="h-3 w-3 text-gray-400 shrink-0" />
+                    <span className="text-xs font-mono text-gray-600">{item.trackingNumber}</span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-300">—</span>
+                ),
+              },
+              {
                 key: "weight",
                 header: "Weight / CBM",
                 render: (item) => {
@@ -135,7 +171,8 @@ export default function CustomerItemsPage() {
             loading={loading}
             emptyMessage="No items found"
             emptyIcon={<Package className="h-12 w-12" />}
-            onRowClick={(item) => setSelectedItem(item)}
+            onRowClick={selectItem}
+            rowClassName={(item) => selectedItem?.id === item.id ? "bg-brand-50" : ""}
           />
         </div>
 
@@ -149,7 +186,7 @@ export default function CustomerItemsPage() {
                 <StatusBadge status={selectedItem.status} />
               </div>
               <button
-                onClick={() => setSelectedItem(null)}
+                onClick={() => { setSelectedItem(null); setSelectedHistory([]); }}
                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
               >
                 <X className="h-4 w-4" />
@@ -222,7 +259,15 @@ export default function CustomerItemsPage() {
               {/* Tracking timeline */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Shipment Progress</p>
-                <TrackingTimeline currentStatus={selectedItem.status} />
+                {historyLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-8 bg-gray-100 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <TrackingTimeline currentStatus={selectedItem.status} history={selectedHistory} />
+                )}
               </div>
             </div>
           </div>

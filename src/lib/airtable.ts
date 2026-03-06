@@ -165,6 +165,7 @@ function mapCustomer(record: AirtableRecord<FieldSet>): Customer {
     firebaseUid: (f["FirebaseUID"] as string) ?? undefined,
     status: ((f["Status"] as string) ?? "active") as Customer["status"],
     shippingType: ((f["ShippingType"] as string) ?? undefined) as Customer["shippingType"],
+    package: ((f["CustomerPackage"] as string) ?? undefined) as Customer["package"],
     exchangeRate: (f["ExchangeRate"] as number) ?? undefined,
     notes: (f["Notes"] as string) ?? undefined,
     createdAt: (f["CreatedAt"] as string) ?? toISOString(),
@@ -390,6 +391,7 @@ export const customersApi = {
     if (input.notes !== undefined) fields["Notes"] = input.notes;
     if (input.status !== undefined) fields["Status"] = input.status;
     if (input.shippingType !== undefined) fields["ShippingType"] = input.shippingType;
+    if (input.package !== undefined) fields["CustomerPackage"] = input.package;
     if (input.exchangeRate !== undefined) fields["ExchangeRate"] = input.exchangeRate;
     if (input.shippingAddress !== undefined) fields["ShippingAddress"] = input.shippingAddress;
 
@@ -580,6 +582,19 @@ export const itemsApi = {
     }
 
     await updateRecord(TABLES.ITEMS, id, { Status: newStatus });
+
+    // Log status history (non-fatal)
+    statusHistoryApi.log({
+      recordType: "Item",
+      recordId: id,
+      recordRef: itemRef,
+      previousStatus,
+      newStatus,
+      changedBy: changedByEmail,
+      changedByRole,
+      changedAt: toISOString(),
+      notes,
+    });
 
     // Send WhatsApp notification only if explicitly requested
     const orderId = ((existing.fields["Order"] as string[]) ?? [])[0];

@@ -30,6 +30,8 @@ export type CustomerStatus = "active" | "inactive";
 // ============================================================
 // CUSTOMER
 // ============================================================
+export type CustomerPackage = "standard" | "discounted" | "premium";
+
 export interface Customer {
   id: string; // Airtable record ID
   name: string;
@@ -40,6 +42,7 @@ export interface Customer {
   firebaseUid?: string;
   status: CustomerStatus;
   shippingType?: "air" | "sea";
+  package?: CustomerPackage;
   exchangeRate?: number;
   notes?: string;
   createdAt: string;
@@ -62,6 +65,7 @@ export interface UpdateCustomerInput {
   notes?: string;
   status?: CustomerStatus;
   shippingType?: "air" | "sea";
+  package?: CustomerPackage;
   exchangeRate?: number | null;
   shippingAddress?: string;
 }

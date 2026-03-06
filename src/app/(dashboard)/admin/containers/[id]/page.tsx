@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import type { Container, Item, ContainerStatus } from "@/types";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,6 +29,10 @@ import {
   X,
   Plus,
   Search,
+  Hash,
+  Weight,
+  Box,
+  Calendar,
 } from "lucide-react";
 import axios from "axios";
 
@@ -56,6 +60,7 @@ export default function ContainerDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", trackingNumber: "", eta: "", notes: "" });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
   // Add Item dialog
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -169,6 +174,7 @@ export default function ContainerDetailPage() {
     try {
       await axios.delete(`/api/containers/${id}/items`, { data: { itemId } });
       success("Item removed from container");
+      if (selectedItem?.id === itemId) setSelectedItem(null);
       load();
     } catch {
       error("Failed to remove item");
@@ -310,59 +316,142 @@ export default function ContainerDetailPage() {
               </Button>
             </div>
 
-            <DataTable
-              columns={[
-                {
-                  key: "itemRef",
-                  header: "Ref",
-                  render: (item) => <span className="font-mono text-xs font-bold">{item.itemRef}</span>,
-                },
-                {
-                  key: "customerShippingMark",
-                  header: "Customer",
-                  render: (item) => (
-                    <code className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">
-                      {item.customerShippingMark ?? "—"}
-                    </code>
-                  ),
-                },
-                {
-                  key: "description",
-                  header: "Description",
-                  render: (item) => <span className="text-sm truncate max-w-[160px] block">{item.description}</span>,
-                },
-                {
-                  key: "weight",
-                  header: "Weight",
-                  render: (item) => <span className="text-sm">{item.weight} kg</span>,
-                },
-                {
-                  key: "status",
-                  header: "Status",
-                  render: (item) => <StatusBadge status={item.status} />,
-                },
-                {
-                  key: "remove",
-                  header: "",
-                  render: (item) => (
+            <div className="flex gap-4">
+              {/* Items table */}
+              <div className={selectedItem ? "flex-1 min-w-0" : "w-full"}>
+                <DataTable
+                  columns={[
+                    {
+                      key: "itemRef",
+                      header: "Ref",
+                      render: (item) => <span className="font-mono text-xs font-bold">{item.itemRef}</span>,
+                    },
+                    {
+                      key: "customerShippingMark",
+                      header: "Customer",
+                      render: (item) => (
+                        <code className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+                          {item.customerShippingMark ?? "—"}
+                        </code>
+                      ),
+                    },
+                    {
+                      key: "description",
+                      header: "Description",
+                      render: (item) => <span className="text-sm truncate max-w-[120px] block">{item.description}</span>,
+                    },
+                    {
+                      key: "trackingNumber",
+                      header: "Tracking #",
+                      render: (item) => (
+                        <span className="text-xs text-gray-500 font-mono">
+                          {item.trackingNumber ?? "—"}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "status",
+                      header: "Status",
+                      render: (item) => <StatusBadge status={item.status} />,
+                    },
+                    {
+                      key: "remove",
+                      header: "",
+                      render: (item) => (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm("Remove this item from the container?")) removeItem(item.id);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      ),
+                    },
+                  ]}
+                  data={container.items ?? []}
+                  keyExtractor={(item) => item.id}
+                  emptyMessage="No items in this container yet"
+                  emptyIcon={<Package className="h-10 w-10" />}
+                  onRowClick={(item) => setSelectedItem(selectedItem?.id === item.id ? null : item)}
+                  rowClassName={(item) =>
+                    selectedItem?.id === item.id ? "bg-brand-50 border-l-2 border-brand-500" : ""
+                  }
+                />
+              </div>
+
+              {/* Item detail panel */}
+              {selectedItem && (
+                <div className="w-72 shrink-0 border border-gray-200 rounded-xl bg-white overflow-y-auto">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div>
+                      <p className="font-mono font-bold text-sm text-gray-900">{selectedItem.itemRef}</p>
+                      <StatusBadge status={selectedItem.status} />
+                    </div>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm("Remove this item from the container?")) removeItem(item.id);
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                      onClick={() => setSelectedItem(null)}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <X className="h-4 w-4" />
                     </button>
-                  ),
-                },
-              ]}
-              data={container.items ?? []}
-              keyExtractor={(item) => item.id}
-              emptyMessage="No items in this container yet"
-              emptyIcon={<Package className="h-10 w-10" />}
-              onRowClick={(item) => router.push(`/admin/items/${item.id}`)}
-            />
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    {/* Photos */}
+                    {selectedItem.photos && selectedItem.photos.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {selectedItem.photos.map((photo) => (
+                          <a key={photo.id} href={photo.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                            <img
+                              src={photo.url}
+                              alt={photo.filename}
+                              className="h-20 w-20 object-cover rounded-lg border border-gray-200"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-0.5">Description</p>
+                      <p className="text-sm font-medium text-gray-900">{selectedItem.description}</p>
+                    </div>
+
+                    {/* Details */}
+                    <div className="space-y-2.5">
+                      {selectedItem.trackingNumber && (
+                        <DetailRow icon={Hash} label="Tracking #" value={selectedItem.trackingNumber} mono />
+                      )}
+                      {selectedItem.shippingType === "sea" && selectedItem.length && selectedItem.width && selectedItem.height ? (
+                        <DetailRow
+                          icon={Box}
+                          label="CBM"
+                          value={`${((selectedItem.length * selectedItem.width * selectedItem.height * (selectedItem.dimensionUnit === "inches" ? 16.387064 : 1)) / 1_000_000).toFixed(4)} m³`}
+                        />
+                      ) : selectedItem.weight ? (
+                        <DetailRow icon={Weight} label="Weight" value={`${selectedItem.weight} kg`} />
+                      ) : null}
+                      {selectedItem.length && selectedItem.width && selectedItem.height && (
+                        <DetailRow
+                          icon={Box}
+                          label="Dimensions"
+                          value={`${selectedItem.length} × ${selectedItem.width} × ${selectedItem.height} ${selectedItem.dimensionUnit}`}
+                        />
+                      )}
+                      <DetailRow icon={Calendar} label="Received" value={formatDateTime(selectedItem.dateReceived)} />
+                      {selectedItem.customerName && (
+                        <DetailRow icon={Package} label="Customer" value={selectedItem.customerName} />
+                      )}
+                      {selectedItem.notes && (
+                        <DetailRow icon={Package} label="Notes" value={selectedItem.notes} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -420,7 +509,7 @@ export default function ContainerDetailPage() {
                           <StatusBadge status={item.status} />
                         </div>
                         <p className="text-xs text-gray-500 truncate mt-0.5">
-                          {item.description || "No description"} · {item.weight} kg
+                          {item.description || "No description"}{item.weight ? ` · ${item.weight} kg` : ""}
                         </p>
                       </div>
                     </div>
@@ -463,6 +552,28 @@ function InfoItem({
           {value ?? "—"}
         </p>
       )}
+    </div>
+  );
+}
+
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-xs text-gray-400">{label}</p>
+        <p className={`text-xs font-medium text-gray-800 break-all ${mono ? "font-mono" : ""}`}>{value}</p>
+      </div>
     </div>
   );
 }
