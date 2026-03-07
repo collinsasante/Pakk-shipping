@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { TrackingTimeline } from "@/components/shared/TrackingTimeline";
 import { StatusBadge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ export default function CustomerTrackingPage() {
   const [selectedHistory, setSelectedHistory] = useState<StatusHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const autoSelected = useRef(false);
 
   const fetchHistory = useCallback(async (itemId: string) => {
     setHistoryLoading(true);
@@ -43,11 +44,12 @@ export default function CustomerTrackingPage() {
         const res = await axios.get("/api/items", {
           params: { search: searchQuery || undefined },
         });
-        setItems(res.data.data);
-        if (!selectedItem && res.data.data.length > 0) {
-          const first = res.data.data[0];
-          setSelectedItem(first);
-          fetchHistory(first.id);
+        const data: Item[] = res.data.data;
+        setItems(data);
+        if (!autoSelected.current && data.length > 0) {
+          autoSelected.current = true;
+          setSelectedItem(data[0]);
+          fetchHistory(data[0].id);
         }
       } catch {
         error("Failed to load items");
@@ -55,7 +57,7 @@ export default function CustomerTrackingPage() {
         setLoading(false);
       }
     },
-    [error, selectedItem, fetchHistory]
+    [error, fetchHistory]
   );
 
   useEffect(() => { load(); }, [load]);

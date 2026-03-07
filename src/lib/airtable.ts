@@ -290,8 +290,19 @@ function mapUser(record: AirtableRecord<FieldSet>): AppUser {
 // ============================================================
 // CUSTOMERS API
 // ============================================================
+// Short-lived cache for unfiltered customersApi.list() — used for customer name resolution
+// on every items/orders fetch. 60s TTL dramatically cuts redundant Airtable full-table scans.
+let _customerListCache: { data: Customer[]; expiresAt: number } | null = null;
+const CUSTOMER_LIST_CACHE_TTL = 60_000;
+function invalidateCustomerCache() { _customerListCache = null; }
+
 export const customersApi = {
   async list(params: CustomerFilterParams = {}): Promise<Customer[]> {
+    const isUnfiltered = !params.status && !params.search;
+    if (isUnfiltered && _customerListCache && _customerListCache.expiresAt > Date.now()) {
+      return _customerListCache.data;
+    }
+
     const formulas: string[] = [];
     if (params.status) formulas.push(`{Status} = '${params.status}'`);
     if (params.search) {
@@ -306,7 +317,12 @@ export const customersApi = {
         : formulas[0] ?? "";
 
     const records = await getAllRecords(TABLES.CUSTOMERS, formula || undefined);
-    return records.map(mapCustomer);
+    const customers = records.map(mapCustomer);
+
+    if (isUnfiltered) {
+      _customerListCache = { data: customers, expiresAt: Date.now() + CUSTOMER_LIST_CACHE_TTL };
+    }
+    return customers;
   },
 
   async getById(id: string): Promise<Customer> {
@@ -361,6 +377,7 @@ export const customersApi = {
       CreatedBy: createdByEmail,
     });
 
+    invalidateCustomerCache();
     return mapCustomer(record);
   },
 
@@ -397,6 +414,7 @@ export const customersApi = {
     if (input.shippingAddress !== undefined) fields["ShippingAddress"] = input.shippingAddress;
 
     const record = await updateRecord(TABLES.CUSTOMERS, id, fields);
+    invalidateCustomerCache();
     return mapCustomer(record);
   },
 
@@ -406,6 +424,7 @@ export const customersApi = {
 
   async delete(id: string): Promise<void> {
     await deleteRecord(TABLES.CUSTOMERS, id);
+    invalidateCustomerCache();
   },
 };
 
