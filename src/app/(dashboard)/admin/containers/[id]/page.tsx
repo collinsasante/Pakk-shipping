@@ -289,7 +289,6 @@ export default function ContainerDetailPage() {
                     return cbm > 0 ? `${cbm.toFixed(3)} m³` : "—";
                   })()} />
                   <InfoItem label="ETA" value={container.eta ? formatDate(container.eta) : "—"} />
-                  <InfoItem label="Arrived" value={container.arrivalDate ? formatDate(container.arrivalDate) : "—"} />
                   <InfoItem label="Created" value={container.createdAt ? formatDate(container.createdAt) : "—"} />
                   {container.notes && <InfoItem label="Notes" value={container.notes} />}
                 </>

@@ -12,7 +12,7 @@ import type { Container } from "@/types";
 import { Plus, Container as ContainerIcon, Pencil, Trash2 } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
-import { Select } from "@/components/ui/select";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 
 const DATE_OPTIONS = [
   { value: "", label: "All time" },
@@ -106,10 +106,10 @@ export default function ContainersPage() {
               onSearch={(val) => { setPage(1); load(val, 1); }}
               className="w-full sm:w-64"
             />
-            <Select
+            <FilterDropdown
               options={DATE_OPTIONS}
               value={dateRange}
-              onChange={(e) => { setDateRange(e.target.value); setPage(1); }}
+              onChange={(val) => { setDateRange(val); setPage(1); }}
               className="w-full sm:w-40"
             />
             {dateRange === "custom" && (

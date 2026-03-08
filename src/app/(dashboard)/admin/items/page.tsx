@@ -8,7 +8,7 @@ import { SearchBar } from "@/components/shared/SearchBar";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusUpdateModal } from "@/components/shared/StatusUpdateModal";
-import { Select } from "@/components/ui/select";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { formatDateTime } from "@/lib/utils";
 import type { Item, ItemStatus } from "@/types";
 import { Plus, Package, Edit2, AlertTriangle, Trash2 } from "lucide-react";
@@ -130,20 +130,20 @@ export default function ItemsPage() {
               }}
               className="w-full sm:w-72"
             />
-            <Select
+            <FilterDropdown
               options={STATUS_OPTIONS}
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as ItemStatus | "");
+              onChange={(val) => {
+                setStatusFilter(val as ItemStatus | "");
                 setPage(1);
-                load(search, e.target.value, 1);
+                load(search, val, 1);
               }}
               className="w-full sm:w-52"
             />
-            <Select
+            <FilterDropdown
               options={DATE_OPTIONS}
               value={dateRange}
-              onChange={(e) => { setDateRange(e.target.value); setPage(1); }}
+              onChange={(val) => { setDateRange(val); setPage(1); }}
               className="w-full sm:w-40"
             />
             {dateRange === "custom" && (

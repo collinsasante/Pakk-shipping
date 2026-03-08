@@ -7,7 +7,7 @@ import { DataTable } from "@/components/shared/DataTable";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types";
 import { Plus, ShoppingCart, CheckCircle, Trash2, ExternalLink } from "lucide-react";
@@ -137,20 +137,20 @@ export default function OrdersPage() {
               }}
               className="w-full sm:w-64"
             />
-            <Select
+            <FilterDropdown
               options={STATUS_OPTIONS}
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as OrderStatus | "");
+              onChange={(val) => {
+                setStatusFilter(val as OrderStatus | "");
                 setPage(1);
-                load(search, e.target.value, 1);
+                load(search, val, 1);
               }}
               className="w-full sm:w-36"
             />
-            <Select
+            <FilterDropdown
               options={DATE_OPTIONS}
               value={dateRange}
-              onChange={(e) => { setDateRange(e.target.value); setPage(1); }}
+              onChange={(val) => { setDateRange(val); setPage(1); }}
               className="w-full sm:w-40"
             />
             {dateRange === "custom" && (

@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { DataTable } from "@/components/shared/DataTable";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { StatusBadge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/select";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { TrackingTimeline } from "@/components/shared/TrackingTimeline";
 import { formatDate } from "@/lib/utils";
 import { ITEM_STATUS_STEPS } from "@/lib/utils";
@@ -136,20 +136,20 @@ export default function CustomerItemsPage() {
               onSearch={(val) => { setPage(1); load(val, statusFilter, 1); }}
               className="w-full sm:w-64"
             />
-            <Select
+            <FilterDropdown
               options={STATUS_OPTIONS}
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as ItemStatus | "");
+              onChange={(val) => {
+                setStatusFilter(val as ItemStatus | "");
                 setPage(1);
-                load("", e.target.value, 1);
+                load("", val, 1);
               }}
               className="w-full sm:w-52"
             />
-            <Select
+            <FilterDropdown
               options={DATE_OPTIONS}
               value={dateRange}
-              onChange={(e) => { setDateRange(e.target.value); setPage(1); }}
+              onChange={(val) => { setDateRange(val); setPage(1); }}
               className="w-full sm:w-40"
             />
             {dateRange === "custom" && (
@@ -307,7 +307,22 @@ export default function CustomerItemsPage() {
                     ))}
                   </div>
                 ) : (
-                  <TrackingTimeline currentStatus={selectedItem.status} history={selectedHistory} />
+                  <TrackingTimeline
+                    currentStatus={selectedItem.status}
+                    history={selectedHistory.length > 0 ? selectedHistory : (
+                      selectedItem.dateReceived ? [{
+                        id: "synthetic-received",
+                        recordType: "Item" as const,
+                        recordId: selectedItem.id,
+                        recordRef: selectedItem.itemRef ?? "",
+                        previousStatus: "",
+                        newStatus: "Arrived at Transit Warehouse",
+                        changedBy: "",
+                        changedByRole: "warehouse_staff" as const,
+                        changedAt: selectedItem.dateReceived,
+                      }] : []
+                    )}
+                  />
                 )}
               </div>
             </div>

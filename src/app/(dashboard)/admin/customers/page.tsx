@@ -12,7 +12,7 @@ import { Plus, Users, Copy, CheckCheck, Pencil, Trash2 } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
-import { Select } from "@/components/ui/select";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 
 const DATE_OPTIONS = [
   { value: "", label: "All time" },
@@ -120,10 +120,10 @@ export default function CustomersPage() {
               onSearch={handleSearch}
               className="w-full sm:w-72"
             />
-            <Select
+            <FilterDropdown
               options={DATE_OPTIONS}
               value={dateRange}
-              onChange={(e) => { setDateRange(e.target.value); setPage(1); }}
+              onChange={(val) => { setDateRange(val); setPage(1); }}
               className="w-full sm:w-40"
             />
             {dateRange === "custom" && (
