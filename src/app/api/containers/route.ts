@@ -1,7 +1,7 @@
 // GET  /api/containers  — list containers
 // POST /api/containers  — create container (admin only)
 import { NextRequest } from "next/server";
-import { containersApi } from "@/lib/airtable";
+import { containersApi, itemsApi } from "@/lib/airtable";
 import {
   requireAuth,
   serverErrorResponse,
@@ -36,10 +36,25 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
     const limit = 50;
 
-    const allContainers = await containersApi.list(params);
+    const [allContainers, allItems] = await Promise.all([
+      containersApi.list(params),
+      itemsApi.list({}),
+    ]);
+
+    // Compute totalCbm per container (keyed by Airtable record ID)
+    const cbmMap: Record<string, number> = {};
+    for (const item of allItems) {
+      if (!item.containerId || !item.length || !item.width || !item.height) continue;
+      const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
+      cbmMap[item.containerId] = (cbmMap[item.containerId] ?? 0) +
+        (item.length * item.width * item.height * factor) / 1_000_000;
+    }
+
     const total = allContainers.length;
     const totalPages = Math.max(1, Math.ceil(total / limit));
-    const data = allContainers.slice((page - 1) * limit, page * limit);
+    const data = allContainers
+      .slice((page - 1) * limit, page * limit)
+      .map((c) => ({ ...c, totalCbm: cbmMap[c.id] ?? 0 }));
 
     return Response.json({ success: true, data, total, totalPages, page });
   } catch (err) {

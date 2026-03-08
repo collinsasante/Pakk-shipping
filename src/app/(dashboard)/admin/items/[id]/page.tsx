@@ -84,7 +84,9 @@ export default function AdminItemDetailPage() {
         axios.get(`/api/items/${id}/history`),
       ]);
       setItem(itemRes.data.data);
-      setHistory(historyRes.data.data ?? []);
+      const historyData = historyRes.data.data ?? [];
+      console.log("[ItemDetail] history response:", historyRes.data, "parsed:", historyData);
+      setHistory(historyData);
     } catch {
       error("Failed to load item");
     } finally {
@@ -296,7 +298,7 @@ export default function AdminItemDetailPage() {
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={photo.thumbnails?.small?.url ?? photo.url}
+                        src={photo.thumbnails?.large?.url ?? photo.url}
                         alt={photo.filename ?? `Photo ${i + 1}`}
                         className="w-full h-full object-cover"
                       />

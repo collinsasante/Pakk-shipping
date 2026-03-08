@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/utils";
 import type { AppUser, UserRole } from "@/types";
-import { Plus, ShieldCheck, Trash2, Copy, CheckCheck } from "lucide-react";
+import { Plus, ShieldCheck, Trash2, Copy, CheckCheck, User, X } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 
@@ -53,6 +53,22 @@ export default function StaffPage() {
   const [createdEmail, setCreatedEmail] = useState<string>("");
   const [emailSent, setEmailSent] = useState(false);
   const [copiedPass, setCopiedPass] = useState(false);
+
+  const [profileUser, setProfileUser] = useState<AppUser | null>(null);
+  const [profileForm, setProfileForm] = useState({ salary: "", hiredDate: "", notes: "" });
+
+  const openProfile = (u: AppUser) => {
+    const stored = localStorage.getItem(`pakk_staff_profile_${u.id}`);
+    const parsed = stored ? JSON.parse(stored) : {};
+    setProfileForm({ salary: parsed.salary ?? "", hiredDate: parsed.hiredDate ?? "", notes: parsed.notes ?? "" });
+    setProfileUser(u);
+  };
+
+  const saveProfile = () => {
+    if (!profileUser) return;
+    localStorage.setItem(`pakk_staff_profile_${profileUser.id}`, JSON.stringify(profileForm));
+    setProfileUser(null);
+  };
 
   const [form, setForm] = useState({
     email: "",
@@ -226,6 +242,7 @@ export default function StaffPage() {
           loading={loading}
           emptyMessage="No users found"
           emptyIcon={<ShieldCheck className="h-12 w-12" />}
+          onRowClick={openProfile}
         />
       </div>
 
@@ -281,6 +298,79 @@ export default function StaffPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Staff profile modal */}
+      {profileUser && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center">
+                  <User className="h-5 w-5 text-brand-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">{profileUser.email}</p>
+                  <RoleBadge role={profileUser.role} />
+                </div>
+              </div>
+              <button onClick={() => setProfileUser(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Info */}
+            <div className="px-6 py-4 space-y-3 border-b border-gray-100">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-gray-400 font-medium mb-0.5">Joined</p>
+                  <p className="text-gray-800">{formatDate(profileUser.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 font-medium mb-0.5">Last Login</p>
+                  <p className="text-gray-800">{profileUser.lastLogin ? formatDate(profileUser.lastLogin) : "Never"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Editable fields */}
+            <div className="px-6 py-4 space-y-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Profile Details</p>
+              <Input
+                label="Salary / Rate"
+                placeholder="e.g. $2,000/mo or $25/hr"
+                value={profileForm.salary}
+                onChange={(e) => setProfileForm({ ...profileForm, salary: e.target.value })}
+              />
+              <Input
+                label="Hire Date"
+                type="date"
+                value={profileForm.hiredDate}
+                onChange={(e) => setProfileForm({ ...profileForm, hiredDate: e.target.value })}
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  placeholder="Any notes about this staff member..."
+                  value={profileForm.notes}
+                  onChange={(e) => setProfileForm({ ...profileForm, notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 pb-5 flex gap-2">
+              <button onClick={() => setProfileUser(null)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={saveProfile} className="flex-1 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Temp password modal */}
       {createdPassword && (

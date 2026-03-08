@@ -280,6 +280,14 @@ export default function ContainerDetailPage() {
                   {container.name && <InfoItem label="Shipping Line" value={container.name} />}
                   <InfoItem label="Status"><StatusBadge status={container.status} /></InfoItem>
                   <InfoItem label="Total Items" value={String(container.items?.length ?? 0)} />
+                  <InfoItem label="Total CBM" value={(() => {
+                    const cbm = (container.items ?? []).reduce((sum, item) => {
+                      if (!item.length || !item.width || !item.height) return sum;
+                      const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
+                      return sum + (item.length * item.width * item.height * factor) / 1_000_000;
+                    }, 0);
+                    return cbm > 0 ? `${cbm.toFixed(3)} m³` : "—";
+                  })()} />
                   <InfoItem label="ETA" value={container.eta ? formatDate(container.eta) : "—"} />
                   <InfoItem label="Arrived" value={container.arrivalDate ? formatDate(container.arrivalDate) : "—"} />
                   <InfoItem label="Created" value={container.createdAt ? formatDate(container.createdAt) : "—"} />

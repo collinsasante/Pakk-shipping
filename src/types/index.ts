@@ -197,6 +197,7 @@ export interface Container {
   notes?: string;
   createdAt: string;
   createdBy?: string;
+  totalCbm?: number; // computed — sum of sea-freight item CBMs
 }
 
 export interface CreateContainerInput {

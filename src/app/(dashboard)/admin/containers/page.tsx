@@ -171,11 +171,11 @@ export default function ContainersPage() {
               ),
             },
             {
-              key: "arrivalDate",
-              header: "Arrival",
+              key: "totalCbm",
+              header: "Total CBM",
               render: (c) => (
-                <span className="text-xs text-gray-500">
-                  {c.arrivalDate ? formatDate(c.arrivalDate) : "—"}
+                <span className="text-xs text-gray-700 font-medium">
+                  {c.totalCbm ? `${c.totalCbm.toFixed(3)} m³` : "—"}
                 </span>
               ),
             },

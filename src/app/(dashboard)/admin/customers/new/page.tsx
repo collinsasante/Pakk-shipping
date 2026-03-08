@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { generateShippingMark } from "@/lib/utils";
-import { COUNTRY_CODES } from "@/lib/countryCodes";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { ArrowLeft, Tag } from "lucide-react";
 import axios from "axios";
 
@@ -96,32 +96,14 @@ export default function NewCustomerPage() {
                 required
               />
 
-              {/* Phone with country code */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  WhatsApp Phone Number
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    value={phoneCode}
-                    onChange={(e) => setPhoneCode(e.target.value)}
-                    className="h-10 rounded-lg border border-gray-200 bg-white px-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 shrink-0"
-                  >
-                    {COUNTRY_CODES.map((cc) => (
-                      <option key={cc.code} value={cc.code}>{cc.label}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="tel"
-                    placeholder="555 123 4567"
-                    value={phoneLocal}
-                    onChange={(e) => setPhoneLocal(e.target.value)}
-                    required
-                    className="flex-1 h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
-                </div>
-                <p className="mt-1 text-xs text-gray-400">Select your country code then enter the number</p>
-              </div>
+              <PhoneInput
+                label="WhatsApp Phone Number"
+                code={phoneCode}
+                local={phoneLocal}
+                onCodeChange={setPhoneCode}
+                onLocalChange={setPhoneLocal}
+                required
+              />
 
               <Input
                 label="Email Address"
