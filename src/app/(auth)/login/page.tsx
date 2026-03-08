@@ -193,25 +193,17 @@ export default function LoginPage() {
     <div className="h-screen w-screen flex bg-white overflow-hidden">
       <div className="w-full h-full flex overflow-hidden">
         {/* ── Left panel ── */}
-        <div
-          className="hidden lg:flex lg:w-[48%] flex-col justify-between p-10 relative overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(ellipse 130% 90% at 90% 10%, rgba(30,100,255,0.55) 0%, transparent 55%)," +
-              "radial-gradient(ellipse 100% 110% at 10% 90%, rgba(220,0,130,0.6) 0%, transparent 55%)," +
-              "radial-gradient(ellipse 70% 70% at 55% 45%, rgba(140,0,220,0.45) 0%, transparent 55%)," +
-              "radial-gradient(ellipse 60% 60% at 80% 70%, rgba(0,180,255,0.3) 0%, transparent 55%)," +
-              "linear-gradient(145deg, #040010 0%, #0a0022 60%, #12002e 100%)",
-          }}
-        >
-          {/* Noise / shimmer overlay */}
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px)",
-            }}
+        <div className="hidden lg:flex lg:w-[48%] flex-col justify-between p-10 relative overflow-hidden">
+          {/* Background image */}
+          <Image
+            src="/auth-bg.png"
+            alt=""
+            fill
+            className="object-cover"
+            priority
           />
+          {/* Dark overlay for text legibility */}
+          <div className="absolute inset-0 bg-black/40" />
 
           {/* Top label */}
           <div className="relative z-10 flex items-center gap-3">
