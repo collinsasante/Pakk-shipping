@@ -29,7 +29,13 @@ export async function GET(
       }
     }
 
-    const history = await statusHistoryApi.getForRecord(id);
+    let history: Awaited<ReturnType<typeof statusHistoryApi.getForRecord>> = [];
+    try {
+      history = await statusHistoryApi.getForRecord(id);
+    } catch (histErr) {
+      // Non-fatal — timeline still renders without timestamps
+      console.error("[GET /items/[id]/history] History fetch error (returning empty):", histErr);
+    }
     return Response.json({ success: true, data: history });
   } catch (err) {
     console.error("[GET /items/[id]/history] Error:", err);
