@@ -1074,17 +1074,14 @@ export const statusHistoryApi = {
   ): Promise<StatusHistory[]> {
     const records = await getAllRecords(
       TABLES.STATUS_HISTORY,
-      `{RecordID} = '${recordId}'`,
-      [{ field: "ChangedAt", direction: "asc" }]
+      `{RecordID} = '${recordId}'`
     );
-    return records.map(mapStatusHistory);
+    return records.map(mapStatusHistory).sort((a, b) => a.changedAt.localeCompare(b.changedAt));
   },
 
   async getAll(): Promise<StatusHistory[]> {
-    const records = await getAllRecords(TABLES.STATUS_HISTORY, undefined, [
-      { field: "ChangedAt", direction: "desc" },
-    ]);
-    return records.map(mapStatusHistory);
+    const records = await getAllRecords(TABLES.STATUS_HISTORY);
+    return records.map(mapStatusHistory).sort((a, b) => b.changedAt.localeCompare(a.changedAt));
   },
 };
 
