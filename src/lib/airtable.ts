@@ -324,7 +324,7 @@ export const customersApi = {
         ? `AND(${formulas.join(",")})`
         : formulas[0] ?? "";
 
-    const records = await getAllRecords(TABLES.CUSTOMERS, formula || undefined);
+    const records = await getAllRecords(TABLES.CUSTOMERS, formula || undefined, [{ field: "CreatedAt", direction: "desc" }]);
     const customers = records.map(mapCustomer);
 
     if (isUnfiltered) {
@@ -711,7 +711,7 @@ export const ordersApi = {
 
     // Fetch orders and customers in parallel — CustomerName lookup is always undefined
     const [records, allCustomers] = await Promise.all([
-      getAllRecords(TABLES.ORDERS, formula || undefined),
+      getAllRecords(TABLES.ORDERS, formula || undefined, [{ field: "CreatedAt", direction: "desc" }]),
       customersApi.list(),
     ]);
     const customerMap = new Map(allCustomers.map((c) => [c.id, c]));
@@ -831,7 +831,7 @@ export const containersApi = {
         ? `AND(${formulas.join(",")})`
         : formulas[0] ?? "";
 
-    const records = await getAllRecords(TABLES.CONTAINERS, formula || undefined);
+    const records = await getAllRecords(TABLES.CONTAINERS, formula || undefined, [{ field: "CreatedAt", direction: "desc" }]);
     return records.map(mapContainer);
   },
 

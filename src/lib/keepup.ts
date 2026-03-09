@@ -96,11 +96,11 @@ export async function createKeepupSale(
     );
   }
 
-  const d = (data as { data?: { sale_id?: number | string; link?: string }; sale_id?: number | string; link?: string }).data ?? data;
-  console.log("[keepup] parsed saleId:", d.sale_id, "link:", d.link);
+  const d = (data as { data?: { sale_id?: number | string; share_link?: string; link?: string }; sale_id?: number | string; share_link?: string; link?: string }).data ?? data;
+  console.log("[keepup] parsed saleId:", d.sale_id, "link:", d.share_link ?? d.link);
   return {
     saleId: String(d.sale_id ?? ""),
-    link: d.link ?? undefined,
+    link: d.share_link ?? d.link ?? undefined,
   };
 }
 
