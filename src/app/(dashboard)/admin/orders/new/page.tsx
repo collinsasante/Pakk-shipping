@@ -120,8 +120,8 @@ export default function NewOrderPage() {
         invoiceDate,
         notes: notes || undefined,
       });
-      success("Order created!", res.data.message);
-      router.push("/admin/orders");
+      success("Invoice created!", res.data.message);
+      router.push(`/admin/orders/${res.data.data.id}`);
     } catch (err) {
       const msg = axios.isAxiosError(err)
         ? err.response?.data?.error ?? "Failed to create order"
