@@ -34,7 +34,7 @@ const nextConfig = {
               "img-src 'self' data: blob: https://*.airtableusercontent.com https://res.cloudinary.com https://firebasestorage.googleapis.com https://lh3.googleusercontent.com",
               "font-src 'self' data:",
               "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.airtable.com https://api.cloudinary.com wss://*.firebaseio.com",
-              "frame-src https://*.firebaseapp.com https://accounts.google.com",
+              "frame-src https://*.firebaseapp.com https://accounts.google.com https://keepup.store https://*.keepup.store",
               "object-src 'none'",
               "base-uri 'self'",
             ].join("; "),
