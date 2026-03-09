@@ -41,6 +41,7 @@ export default function AdminOrderDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
 
   // Editable form state
   const [invoiceAmount, setInvoiceAmount] = useState("");
@@ -102,6 +103,21 @@ export default function AdminOrderDetailPage() {
     }
   };
 
+  const handleCreateInvoice = async () => {
+    if (!order) return;
+    setCreatingInvoice(true);
+    try {
+      await axios.post(`/api/orders/${id}/create-invoice`);
+      success("Invoice created in Keepup");
+      load();
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error ?? "Failed to create invoice" : "Failed to create invoice";
+      error("Error", msg);
+    } finally {
+      setCreatingInvoice(false);
+    }
+  };
+
   const handleDelete = async () => {
     setDeleting(true);
     try {
@@ -149,16 +165,23 @@ export default function AdminOrderDetailPage() {
         <StatusBadge status={order.status} />
 
         <div className="ml-auto flex items-center gap-2">
-          {order.keepupLink && (
-            <a
-              href={order.keepupLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-800 border border-brand-200 rounded-lg px-3 py-1.5 hover:bg-brand-50 transition-colors"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              View on Keepup
-            </a>
+          {order.keepupSaleId ? (
+            order.keepupLink && (
+              <a
+                href={order.keepupLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-800 border border-brand-200 rounded-lg px-3 py-1.5 hover:bg-brand-50 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                View on Keepup
+              </a>
+            )
+          ) : (
+            <Button size="sm" variant="outline" onClick={handleCreateInvoice} loading={creatingInvoice}>
+              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+              Create Invoice
+            </Button>
           )}
           {order.status !== "Paid" && (
             <Button size="sm" variant="success" onClick={handleMarkPaid} loading={markingPaid}>
