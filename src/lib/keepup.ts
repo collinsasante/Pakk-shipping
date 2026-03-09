@@ -73,9 +73,8 @@ export async function createKeepupSale(
     due_date: dueDate,
   };
   if (params.customerName) body.customer_name = params.customerName;
-  if (params.customerEmail) body.customer_email = params.customerEmail;
-  if (params.customerPhone) body.phone_number = params.customerPhone;
-  // Note: intentionally omitting note/reference from Keepup invoice
+  if (params.customerEmail && params.customerEmail.includes("@")) body.customer_email = params.customerEmail;
+  // phone_number omitted — format validation causes "invalid fields" errors
 
   console.log("[keepup] createKeepupSale request body:", JSON.stringify(body, null, 2));
 
