@@ -124,22 +124,22 @@ export async function POST(request: NextRequest) {
       );
       order.keepupSaleId = keepupResult.saleId;
       order.keepupLink = keepupResult.link;
+
+      // Send invoice email to customer (non-fatal, inside try so customer is in scope)
+      if (customer?.email) {
+        sendInvoiceCreatedEmail({
+          to: customer.email,
+          customerName: customer.name,
+          orderRef: order.orderRef,
+          invoiceAmount: parsed.data.invoiceAmount,
+          invoiceDate: parsed.data.invoiceDate,
+          itemCount: parsed.data.itemIds.length,
+          keepupLink: order.keepupLink,
+          notes: parsed.data.notes,
+        }).catch((e) => console.error("[POST /orders] Invoice email failed (non-fatal):", e));
+      }
     } catch (keepupErr) {
       console.error("[POST /orders] Keepup sale creation failed (non-fatal):", keepupErr);
-    }
-
-    // Send invoice email to customer (non-fatal)
-    if (customer?.email) {
-      sendInvoiceCreatedEmail({
-        to: customer.email,
-        customerName: customer.name,
-        orderRef: order.orderRef,
-        invoiceAmount: parsed.data.invoiceAmount,
-        invoiceDate: parsed.data.invoiceDate,
-        itemCount: parsed.data.itemIds.length,
-        keepupLink: order.keepupLink,
-        notes: parsed.data.notes,
-      }).catch((e) => console.error("[POST /orders] Invoice email failed (non-fatal):", e));
     }
 
     return Response.json(
