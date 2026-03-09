@@ -214,7 +214,8 @@ export default function ItemsPage() {
                   if (item.length && item.width && item.height) {
                     const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
                     const cbm = (item.length * item.width * item.height * factor) / 1_000_000;
-                    return <span className="text-sm">{cbm.toFixed(4)} m³</span>;
+                    const totalCbm = cbm * (item.quantity ?? 1);
+                    return <span className="text-sm">{totalCbm.toFixed(4)} m³</span>;
                   }
                 }
                 if (item.weight) return <span className="text-sm">{item.weight} kg</span>;

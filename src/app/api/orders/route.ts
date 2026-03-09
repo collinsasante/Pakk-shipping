@@ -95,14 +95,22 @@ export async function POST(request: NextRequest) {
         customerEmail: customer?.email,
         customerPhone: customer?.phone,
         invoiceDate: parsed.data.invoiceDate,
-        items: validItems.map((item) => ({
-          item_name: item!.description
-            ? `Freight: ${item!.description}`
-            : `Freight Item (${item!.itemRef})`,
-          quantity: 1,
-          price: Math.round(pricePerItem * 100) / 100,
-          item_type: "service",
-        })),
+        items: validItems.map((item) => {
+          const qty = item!.quantity ?? 1;
+          let cbmNote = "";
+          if (item!.length && item!.width && item!.height) {
+            const factor = item!.dimensionUnit === "inches" ? 16.387064 : 1;
+            const cbm = (item!.length * item!.width * item!.height * factor * qty) / 1_000_000;
+            cbmNote = ` [CBM: ${cbm.toFixed(4)} m³]`;
+          }
+          const trackingNote = item!.trackingNumber ? ` [TRK: ${item!.trackingNumber}]` : "";
+          return {
+            item_name: (item!.description ? `Freight: ${item!.description}` : `Freight Item (${item!.itemRef})`) + trackingNote + cbmNote,
+            quantity: qty,
+            price: Math.round(pricePerItem * 100) / 100,
+            item_type: "service",
+          };
+        }),
         reference: order.orderRef,
         notes: parsed.data.notes,
       });

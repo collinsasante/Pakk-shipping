@@ -233,7 +233,7 @@ export default function NewItemPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={3}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Select
                     label="Freight Type"
                     options={[
@@ -252,15 +252,6 @@ export default function NewItemPage() {
                     value={form.weight}
                     onChange={(e) => setForm({ ...form, weight: e.target.value })}
                     required={form.shippingType === "air"}
-                  />
-                  <Input
-                    label="Quantity"
-                    type="number"
-                    min="1"
-                    step="1"
-                    placeholder="1"
-                    value={form.quantity}
-                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                   />
                 </div>
                 <Input
@@ -393,6 +384,15 @@ export default function NewItemPage() {
                     onChange={(e) => setForm({ ...form, height: e.target.value })}
                   />
                 </div>
+                <Input
+                  label="Quantity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="1"
+                  value={form.quantity}
+                  onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                />
                 <CbmDisplay
                   length={parseFloat(form.length) || 0}
                   width={parseFloat(form.width) || 0}

@@ -174,6 +174,7 @@ export interface CreateOrderInput {
 
 export interface UpdateOrderInput {
   invoiceAmount?: number;
+  invoiceDate?: string;
   status?: OrderStatus;
   notes?: string;
   itemIds?: string[];

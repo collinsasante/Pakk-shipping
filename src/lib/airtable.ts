@@ -794,6 +794,7 @@ export const ordersApi = {
     const fields: FieldSet = {};
     if (input.invoiceAmount !== undefined)
       fields["InvoiceAmount"] = input.invoiceAmount;
+    if (input.invoiceDate !== undefined) fields["InvoiceDate"] = input.invoiceDate;
     if (input.status !== undefined) fields["Status"] = input.status;
     if (input.notes !== undefined) fields["Notes"] = input.notes;
     if (input.itemIds !== undefined) fields["Items"] = input.itemIds;

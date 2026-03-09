@@ -157,6 +157,54 @@ export async function recordKeepupPayment(
   }
 }
 
+export interface UpdateSaleParams {
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  items?: Omit<KeepupLineItem, "item_id">[];
+  notes?: string;
+  invoiceDate?: string;
+}
+
+// PUT /v2.0/sales/edit/{sale_id} — edit an existing sale
+export async function updateKeepupSale(
+  saleId: string,
+  params: UpdateSaleParams
+): Promise<void> {
+  const body: Record<string, unknown> = {};
+
+  if (params.customerName) body.name = params.customerName;
+  if (params.customerEmail) body.email = params.customerEmail;
+  if (params.customerPhone) body.phone = params.customerPhone;
+  if (params.notes !== undefined) body.note = params.notes;
+  if (params.invoiceDate) {
+    body.issue_date = toKeepupDate(params.invoiceDate);
+    const dueDateObj = new Date(params.invoiceDate);
+    dueDateObj.setDate(dueDateObj.getDate() + 30);
+    body.due_date = toKeepupDate(dueDateObj.toISOString());
+  }
+  if (params.items) {
+    const itemsWithIds: KeepupLineItem[] = params.items.map((item, i) => ({
+      item_id: i + 1,
+      ...item,
+    }));
+    body.items = JSON.stringify(itemsWithIds);
+  }
+
+  const res = await fetch(`${BASE}/sales/edit/${saleId}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      (data as { error?: string }).error ?? `Keepup edit error ${res.status}`
+    );
+  }
+}
+
 // PUT /v2.0/sales/cancel/{sale_id} — cancel a sale
 export async function cancelKeepupSale(saleId: string): Promise<void> {
   const res = await fetch(`${BASE}/sales/cancel/${saleId}`, {

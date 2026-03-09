@@ -9,14 +9,16 @@ import {
   notFoundResponse,
   badRequestResponse,
 } from "@/lib/auth";
-import { recordKeepupPayment, cancelKeepupSale } from "@/lib/keepup";
+import { recordKeepupPayment, cancelKeepupSale, updateKeepupSale } from "@/lib/keepup";
 import { z } from "zod";
 
 const UpdateOrderSchema = z.object({
   invoiceAmount: z.number().positive().optional(),
+  invoiceDate: z.string().optional(),
   status: z.enum(["Pending", "Partial", "Paid"]).optional(),
   notes: z.string().optional(),
   itemIds: z.array(z.string()).optional(),
+  syncKeeup: z.boolean().optional(),
 });
 
 export async function GET(
@@ -93,6 +95,18 @@ export async function PATCH(
         await recordKeepupPayment(order.keepupSaleId, order.invoiceAmount);
       } catch (keepupErr) {
         console.error("[PATCH /orders] Keepup payment record failed (non-fatal):", keepupErr);
+      }
+    }
+
+    // Sync edits to Keepup if requested
+    if (parsed.data.syncKeeup && order.keepupSaleId) {
+      try {
+        await updateKeepupSale(order.keepupSaleId, {
+          notes: parsed.data.notes,
+          invoiceDate: parsed.data.invoiceDate,
+        });
+      } catch (keepupErr) {
+        console.error("[PATCH /orders] Keepup update failed (non-fatal):", keepupErr);
       }
     }
 
