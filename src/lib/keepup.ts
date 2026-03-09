@@ -109,6 +109,19 @@ export interface KeepupSaleStatus {
   shareLink?: string;
 }
 
+// GET /v2.0/sales/{sale_id} — fetch only the share link (non-throwing)
+export async function fetchKeepupShareLink(saleId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${BASE}/sales/${saleId}`, { headers: authHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return null;
+    const d = (data as Record<string, unknown>).data ?? data;
+    return (d as Record<string, unknown>).share_link as string ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // GET /v2.0/sales/{sale_id} — fetch sale details and payment status
 export async function getKeepupSale(saleId: string): Promise<KeepupSaleStatus> {
   const res = await fetch(`${BASE}/sales/${saleId}`, {
@@ -128,6 +141,8 @@ export async function getKeepupSale(saleId: string): Promise<KeepupSaleStatus> {
   const amountPaid = parseFloat(String((d as Record<string, unknown>).amount_paid ?? "")) || 0;
   const balanceDue = parseFloat(String((d as Record<string, unknown>).balance_due ?? "")) || 0;
 
+  const shareLink = (d as Record<string, unknown>).share_link as string | undefined;
+
   // Guard: if we couldn't parse a total_amount, the response is unexpected — throw so
   // the caller doesn't falsely mark orders as Paid
   if (totalAmount === null) {
@@ -135,7 +150,6 @@ export async function getKeepupSale(saleId: string): Promise<KeepupSaleStatus> {
     throw new Error("Keepup response missing total_amount — skipping status update");
   }
 
-  const shareLink = (d as Record<string, unknown>).share_link as string | undefined;
   return { totalAmount, amountPaid, balanceDue, shareLink };
 }
 

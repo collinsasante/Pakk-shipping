@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Order } from "@/types";
 import axios from "axios";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, ExternalLink } from "lucide-react";
 
 export default function CustomerInvoicePage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +34,17 @@ export default function CustomerInvoicePage() {
           <>
             <span className="text-gray-300">|</span>
             <span className="text-sm font-mono font-medium text-gray-700">{order.orderRef}</span>
+            {order.keepupLink && (
+              <a
+                href={order.keepupLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto flex items-center gap-1 text-xs text-brand-600 hover:underline"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open in new tab
+              </a>
+            )}
           </>
         )}
       </div>
@@ -51,10 +62,23 @@ export default function CustomerInvoicePage() {
             title={`Invoice ${order.orderRef}`}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-6">
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-6">
             <FileText className="h-10 w-10 text-gray-200" />
-            <p className="text-gray-500 font-medium">Invoice not available yet</p>
-            <p className="text-sm text-gray-400">This invoice hasn&apos;t been synced yet. Contact Pakkmaxx for details.</p>
+            <div>
+              <p className="text-gray-500 font-medium">Invoice not available yet</p>
+              <p className="text-sm text-gray-400 mt-1">Contact Pakkmaxx for details.</p>
+            </div>
+            {order?.keepupSaleId && (
+              <a
+                href={`https://keepup.store`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View on Keepup
+              </a>
+            )}
           </div>
         )}
       </div>
