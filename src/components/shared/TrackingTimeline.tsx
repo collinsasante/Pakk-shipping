@@ -85,9 +85,8 @@ export function TrackingTimeline({
                 </p>
               )}
               {historyEntry && (
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-400 mt-1">
                   {formatDateTime(historyEntry.changedAt)}
-                  {historyEntry.changedBy && ` · ${historyEntry.changedBy}`}
                 </p>
               )}
             </div>

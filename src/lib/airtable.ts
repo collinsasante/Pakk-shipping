@@ -1469,17 +1469,13 @@ function mapWarehouse(record: AirtableRecord<FieldSet>): Warehouse {
 
 export const warehousesApi = {
   async list(): Promise<Warehouse[]> {
-    const records = await getAllRecords(TABLES.WAREHOUSES, undefined, [
-      { field: "CreatedAt", direction: "asc" },
-    ]);
-    return records.map(mapWarehouse);
+    const records = await getAllRecords(TABLES.WAREHOUSES);
+    return records.map(mapWarehouse).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   },
 
   async listActive(): Promise<Warehouse[]> {
-    const records = await getAllRecords(TABLES.WAREHOUSES, `{IsActive} = 1`, [
-      { field: "CreatedAt", direction: "asc" },
-    ]);
-    return records.map(mapWarehouse);
+    const records = await getAllRecords(TABLES.WAREHOUSES, `{IsActive} = 1`);
+    return records.map(mapWarehouse).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   },
 
   async create(input: CreateWarehouseInput): Promise<Warehouse> {
