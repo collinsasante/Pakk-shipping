@@ -7,20 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/context/AuthContext";
-import { User, Lock, Tag, Package, MapPin } from "lucide-react";
+import { User, Lock, Tag, MapPin } from "lucide-react";
 import axios from "axios";
-import type { CustomerPackage } from "@/types";
-
-const PACKAGE_META: Record<CustomerPackage, { label: string; color: string; desc: string }> = {
-  standard: { label: "Standard", color: "bg-gray-100 text-gray-700", desc: "Our standard sea & air rates" },
-  discounted: { label: "Discounted", color: "bg-blue-50 text-blue-700", desc: "Reduced rates for regular shippers" },
-  premium: { label: "Premium", color: "bg-amber-50 text-amber-700", desc: "Priority handling & best availability" },
-};
 
 export default function CustomerSettingsPage() {
   const { appUser } = useAuth();
   const { success, error } = useToast();
-  const [activeTab, setActiveTab] = useState<"profile" | "package" | "security">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
 
   const [form, setForm] = useState({
     name: appUser?.customerName ?? "",
@@ -30,8 +23,6 @@ export default function CustomerSettingsPage() {
     notes: "",
   });
   const [saving, setSaving] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState<CustomerPackage | undefined>(appUser?.package);
-  const [savingPackage, setSavingPackage] = useState(false);
 
   const [resetSent, setResetSent] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
@@ -48,7 +39,6 @@ export default function CustomerSettingsPage() {
         shippingAddress: c.shippingAddress ?? "",
         notes: c.notes ?? "",
       }));
-      setSelectedPackage(c.package ?? undefined);
     }).catch(() => {});
   }, [appUser?.customerId]);
 
@@ -74,19 +64,6 @@ export default function CustomerSettingsPage() {
     }
   };
 
-  const handleSavePackage = async () => {
-    if (!appUser?.customerId || !selectedPackage) return;
-    setSavingPackage(true);
-    try {
-      await axios.patch(`/api/customers/${appUser.customerId}`, { package: selectedPackage });
-      success("Package updated");
-    } catch {
-      error("Failed to update package");
-    } finally {
-      setSavingPackage(false);
-    }
-  };
-
   const handlePasswordReset = async () => {
     setSendingReset(true);
     try {
@@ -104,7 +81,6 @@ export default function CustomerSettingsPage() {
 
   const tabs = [
     { id: "profile" as const, label: "My Profile", icon: User },
-    { id: "package" as const, label: "My Package", icon: Package },
     { id: "security" as const, label: "Security", icon: Lock },
   ];
 
@@ -201,56 +177,6 @@ export default function CustomerSettingsPage() {
                 </form>
               </CardContent>
             </Card>
-          </div>
-        )}
-
-        {/* Package Tab */}
-        {activeTab === "package" && (
-          <div className="max-w-xl space-y-4">
-            <p className="text-sm text-gray-500">
-              Select the pricing package that fits your shipping needs. Your package determines your sea and air freight rates.
-            </p>
-
-            {(Object.entries(PACKAGE_META) as [CustomerPackage, typeof PACKAGE_META[CustomerPackage]][]).map(([pkg, meta]) => (
-              <button
-                key={pkg}
-                onClick={() => setSelectedPackage(pkg)}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                  selectedPackage === pkg
-                    ? "border-brand-500 bg-brand-50"
-                    : "border-gray-100 bg-white hover:border-gray-200"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${meta.color}`}>
-                      <Package className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{meta.label}</p>
-                      <p className="text-xs text-gray-500">{meta.desc}</p>
-                    </div>
-                  </div>
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedPackage === pkg ? "border-brand-500 bg-brand-500" : "border-gray-300"}`}>
-                    {selectedPackage === pkg && <div className="w-2 h-2 rounded-full bg-white" />}
-                  </div>
-                </div>
-              </button>
-            ))}
-
-            {selectedPackage && selectedPackage !== appUser?.package && (
-              <Button onClick={handleSavePackage} loading={savingPackage} className="w-full">
-                Switch to {PACKAGE_META[selectedPackage].label}
-              </Button>
-            )}
-
-            {appUser?.package && selectedPackage === appUser.package && (
-              <div className="p-3 bg-green-50 border border-green-100 rounded-xl">
-                <p className="text-sm text-green-700 font-medium">
-                  You are on the <span className="capitalize">{appUser.package}</span> package
-                </p>
-              </div>
-            )}
           </div>
         )}
 

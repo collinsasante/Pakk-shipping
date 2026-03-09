@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { StatusBadge } from "@/components/ui/badge";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import type { Order, Item } from "@/types";
-import { ShoppingCart, ChevronDown, ChevronUp, Package } from "lucide-react";
+import { ShoppingCart, ChevronDown, ChevronUp, Package, ExternalLink } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 
@@ -121,6 +121,21 @@ export default function CustomerOrdersPage() {
               {/* Order Details (expanded) */}
               {order._expanded && (
                 <div className="border-t border-gray-100 p-5">
+                  {order.keepupLink && (
+                    <a
+                      href={order.keepupLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between w-full mb-4 p-3 bg-brand-50 border border-brand-100 rounded-lg hover:bg-brand-100 transition-colors"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-brand-800">View Full Invoice</p>
+                        <p className="text-xs text-brand-600 mt-0.5">See itemised breakdown on Keepup</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-brand-600 shrink-0" />
+                    </a>
+                  )}
+
                   {order.status === "Pending" && (
                     <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-lg">
                       <p className="text-sm text-amber-800 font-medium">

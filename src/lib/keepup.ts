@@ -16,13 +16,13 @@ function authHeaders() {
   };
 }
 
-// Format a date string to "YYYY-MM-DD HH:mm:ss" for Keepup
+// Format a date string to "YYYY-MM-DD HH:mm" for Keepup
 function toKeepupDate(dateStr?: string): string {
   const d = dateStr ? new Date(dateStr) : new Date();
   const YYYY = d.getUTCFullYear();
   const MM = String(d.getUTCMonth() + 1).padStart(2, "0");
   const DD = String(d.getUTCDate()).padStart(2, "0");
-  return `${YYYY}-${MM}-${DD} 00:00:00`;
+  return `${YYYY}-${MM}-${DD} 00:00`;
 }
 
 export interface KeepupLineItem {
@@ -58,17 +58,25 @@ export async function createKeepupSale(
     ...item,
   }));
 
+  const issueDate = toKeepupDate(params.invoiceDate);
+  // Due date: 30 days after issue date
+  const dueDateObj = params.invoiceDate ? new Date(params.invoiceDate) : new Date();
+  dueDateObj.setDate(dueDateObj.getDate() + 30);
+  const dueDate = toKeepupDate(dueDateObj.toISOString());
+
   const body: Record<string, unknown> = {
     items: JSON.stringify(itemsWithIds),
     payment_type: "bank_transfer",
     amount_received: "0",
     alert_customer: "no",
+    issue_date: issueDate,
+    due_date: dueDate,
   };
   if (params.customerName) body.name = params.customerName;
   if (params.customerEmail) body.email = params.customerEmail;
   if (params.customerPhone) body.phone = params.customerPhone;
   if (params.notes || params.reference) {
-    body.notes = [params.reference, params.notes].filter(Boolean).join(" · ");
+    body.note = [params.reference, params.notes].filter(Boolean).join(" · ");
   }
 
   console.log("[keepup] createKeepupSale request body:", JSON.stringify(body, null, 2));
@@ -106,6 +114,8 @@ export async function recordKeepupPayment(
     headers: authHeaders(),
     body: JSON.stringify({
       amount_paid: String(amount),
+      payment_type: "bank_transfer",
+      date: toKeepupDate(),
       alert_customer: "no",
     }),
   });
