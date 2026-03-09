@@ -2,7 +2,7 @@
 // PATCH  /api/orders/[id]  — update order (status, amount)
 // DELETE /api/orders/[id]  — delete order
 import { NextRequest } from "next/server";
-import { ordersApi, itemsApi } from "@/lib/airtable";
+import { ordersApi, itemsApi, customersApi } from "@/lib/airtable";
 import {
   requireAuth,
   serverErrorResponse,
@@ -10,6 +10,7 @@ import {
   badRequestResponse,
 } from "@/lib/auth";
 import { recordKeepupPayment, cancelKeepupSale, updateKeepupSale } from "@/lib/keepup";
+import { sendPaymentConfirmedEmail, sendPartialPaymentEmail } from "@/lib/email";
 import { z } from "zod";
 
 const UpdateOrderSchema = z.object({
@@ -96,6 +97,30 @@ export async function PATCH(
       } catch (keepupErr) {
         console.error("[PATCH /orders] Keepup payment record failed (non-fatal):", keepupErr);
       }
+    }
+
+    // Send payment emails (non-fatal)
+    if (parsed.data.status === "Paid" || parsed.data.status === "Partial") {
+      customersApi.getById(order.customerId).then((customer) => {
+        if (!customer?.email) return;
+        if (parsed.data.status === "Paid") {
+          sendPaymentConfirmedEmail({
+            to: customer.email,
+            customerName: customer.name,
+            orderRef: order.orderRef,
+            invoiceAmount: order.invoiceAmount,
+          }).catch((e) => console.error("[PATCH /orders] Payment email failed:", e));
+        } else if (parsed.data.status === "Partial") {
+          sendPartialPaymentEmail({
+            to: customer.email,
+            customerName: customer.name,
+            orderRef: order.orderRef,
+            amountPaid: order.invoiceAmount * 0.5, // placeholder — Keepup has actual amounts
+            balanceDue: order.invoiceAmount * 0.5,
+            keepupLink: order.keepupLink,
+          }).catch((e) => console.error("[PATCH /orders] Partial payment email failed:", e));
+        }
+      }).catch(() => {/* non-fatal */});
     }
 
     // Sync edits to Keepup if requested

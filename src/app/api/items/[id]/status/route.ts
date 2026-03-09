@@ -1,13 +1,14 @@
 // PATCH /api/items/[id]/status — update item status
 // Triggers WhatsApp notification and logs history
 import { NextRequest } from "next/server";
-import { itemsApi, BusinessError } from "@/lib/airtable";
+import { itemsApi, customersApi, BusinessError } from "@/lib/airtable";
 import {
   requireAuth,
   serverErrorResponse,
   badRequestResponse,
 } from "@/lib/auth";
 import { ITEM_STATUS_STEPS } from "@/lib/utils";
+import { sendItemStatusEmail } from "@/lib/email";
 import { z } from "zod";
 import type { ItemStatus } from "@/types";
 
@@ -70,6 +71,21 @@ export async function PATCH(
       notes,
       sendWhatsApp
     );
+
+    // Send item status email to customer (non-fatal)
+    if (item.customerId) {
+      customersApi.getById(item.customerId).then((customer) => {
+        if (!customer?.email) return;
+        sendItemStatusEmail({
+          to: customer.email,
+          customerName: customer.name,
+          itemRef: item.itemRef,
+          description: item.description ?? "",
+          status,
+          trackingNumber: item.trackingNumber,
+        }).catch((e) => console.error("[status] Item email failed:", e));
+      }).catch(() => {/* non-fatal */});
+    }
 
     return Response.json({
       success: true,

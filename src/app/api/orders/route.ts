@@ -8,6 +8,7 @@ import {
   badRequestResponse,
 } from "@/lib/auth";
 import { createKeepupSale } from "@/lib/keepup";
+import { sendInvoiceCreatedEmail } from "@/lib/email";
 import { z } from "zod";
 
 const CreateOrderSchema = z.object({
@@ -125,6 +126,20 @@ export async function POST(request: NextRequest) {
       order.keepupLink = keepupResult.link;
     } catch (keepupErr) {
       console.error("[POST /orders] Keepup sale creation failed (non-fatal):", keepupErr);
+    }
+
+    // Send invoice email to customer (non-fatal)
+    if (customer?.email) {
+      sendInvoiceCreatedEmail({
+        to: customer.email,
+        customerName: customer.name,
+        orderRef: order.orderRef,
+        invoiceAmount: parsed.data.invoiceAmount,
+        invoiceDate: parsed.data.invoiceDate,
+        itemCount: parsed.data.itemIds.length,
+        keepupLink: order.keepupLink,
+        notes: parsed.data.notes,
+      }).catch((e) => console.error("[POST /orders] Invoice email failed (non-fatal):", e));
     }
 
     return Response.json(

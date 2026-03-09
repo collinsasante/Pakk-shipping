@@ -7,6 +7,7 @@ import { NextRequest } from "next/server";
 import { customersApi, usersApi } from "@/lib/airtable";
 import { createFirebaseUser, verifyIdToken, setCustomClaims } from "@/lib/firebase-admin";
 import { serverErrorResponse, badRequestResponse } from "@/lib/auth";
+import { sendWelcomeEmail } from "@/lib/email";
 import { z } from "zod";
 
 const EmailSignupSchema = z.object({
@@ -125,6 +126,11 @@ export async function POST(request: NextRequest) {
     } catch (claimsErr) {
       console.error("[signup] setCustomClaims failed (non-fatal):", claimsErr);
     }
+
+    // Send welcome email (non-fatal)
+    sendWelcomeEmail(email, customer.name, customer.shippingMark).catch((e) =>
+      console.error("[signup] Welcome email failed (non-fatal):", e)
+    );
 
     return Response.json(
       {
