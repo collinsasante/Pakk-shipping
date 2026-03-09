@@ -75,9 +75,7 @@ export async function createKeepupSale(
   if (params.customerName) body.name = params.customerName;
   if (params.customerEmail) body.email = params.customerEmail;
   if (params.customerPhone) body.phone = params.customerPhone;
-  if (params.notes || params.reference) {
-    body.note = [params.reference, params.notes].filter(Boolean).join(" · ");
-  }
+  // Note: intentionally omitting note/reference from Keepup invoice
 
   console.log("[keepup] createKeepupSale request body:", JSON.stringify(body, null, 2));
 
@@ -125,11 +123,18 @@ export async function getKeepupSale(saleId: string): Promise<KeepupSaleStatus> {
 
   // Response may be nested under data or at root
   const d = (data as Record<string, unknown>).data ?? data;
-  return {
-    totalAmount: parseFloat(String((d as Record<string, unknown>).total_amount ?? "0")) || 0,
-    amountPaid: parseFloat(String((d as Record<string, unknown>).amount_paid ?? "0")) || 0,
-    balanceDue: parseFloat(String((d as Record<string, unknown>).balance_due ?? "0")) || 0,
-  };
+  const totalAmount = parseFloat(String((d as Record<string, unknown>).total_amount ?? "")) || null;
+  const amountPaid = parseFloat(String((d as Record<string, unknown>).amount_paid ?? "")) || 0;
+  const balanceDue = parseFloat(String((d as Record<string, unknown>).balance_due ?? "")) || 0;
+
+  // Guard: if we couldn't parse a total_amount, the response is unexpected — throw so
+  // the caller doesn't falsely mark orders as Paid
+  if (totalAmount === null) {
+    console.warn("[keepup] getKeepupSale: unexpected response shape, cannot determine payment status", JSON.stringify(d));
+    throw new Error("Keepup response missing total_amount — skipping status update");
+  }
+
+  return { totalAmount, amountPaid, balanceDue };
 }
 
 // PUT /v2.0/sales/balance/{sale_id} — record a payment
@@ -162,7 +167,6 @@ export interface UpdateSaleParams {
   customerEmail?: string;
   customerPhone?: string;
   items?: Omit<KeepupLineItem, "item_id">[];
-  notes?: string;
   invoiceDate?: string;
 }
 
@@ -176,7 +180,6 @@ export async function updateKeepupSale(
   if (params.customerName) body.name = params.customerName;
   if (params.customerEmail) body.email = params.customerEmail;
   if (params.customerPhone) body.phone = params.customerPhone;
-  if (params.notes !== undefined) body.note = params.notes;
   if (params.invoiceDate) {
     body.issue_date = toKeepupDate(params.invoiceDate);
     const dueDateObj = new Date(params.invoiceDate);

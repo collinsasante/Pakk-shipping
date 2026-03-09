@@ -127,7 +127,6 @@ export async function PATCH(
     if (parsed.data.syncKeeup && order.keepupSaleId) {
       try {
         await updateKeepupSale(order.keepupSaleId, {
-          notes: parsed.data.notes,
           invoiceDate: parsed.data.invoiceDate,
         });
       } catch (keepupErr) {

@@ -107,13 +107,11 @@ export async function POST(request: NextRequest) {
           const trackingNote = item!.trackingNumber ? ` [TRK: ${item!.trackingNumber}]` : "";
           return {
             item_name: (item!.description ? `Freight: ${item!.description}` : `Freight Item (${item!.itemRef})`) + trackingNote + cbmNote,
-            quantity: qty,
+            quantity: 1,
             price: Math.round(pricePerItem * 100) / 100,
             item_type: "service",
           };
         }),
-        reference: order.orderRef,
-        notes: parsed.data.notes,
       });
 
       // Store the keepup sale ID back on the order
