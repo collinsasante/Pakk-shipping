@@ -20,6 +20,7 @@ const UpdateOrderSchema = z.object({
   notes: z.string().optional(),
   itemIds: z.array(z.string()).optional(),
   syncKeeup: z.boolean().optional(),
+  paymentAmount: z.number().positive().optional(),
 });
 
 export async function GET(
@@ -98,6 +99,19 @@ export async function PATCH(
     }
 
     const order = await ordersApi.update(id, parsed.data, user.email);
+
+    // Record payment in Keepup if paymentAmount provided
+    if (parsed.data.paymentAmount !== undefined && order.keepupSaleId) {
+      try {
+        await recordKeepupPayment(order.keepupSaleId, parsed.data.paymentAmount);
+        // Determine status
+        const newStatus = parsed.data.paymentAmount >= order.invoiceAmount ? "Paid" : "Partial";
+        await ordersApi.update(id, { status: newStatus }, user.email);
+        order.status = newStatus;
+      } catch (e) {
+        console.error("[PATCH /orders] Keepup payment record failed:", e);
+      }
+    }
 
     // Sync payment to Keepup when marked as Paid (non-fatal)
     if (parsed.data.status === "Paid" && order.keepupSaleId) {

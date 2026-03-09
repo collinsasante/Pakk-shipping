@@ -68,6 +68,7 @@ export default function ContainerDetailPage() {
   const [dialogSearch, setDialogSearch] = useState("");
   const [dialogLoading, setDialogLoading] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -90,8 +91,12 @@ export default function ContainerDetailPage() {
       const params = search.length >= 1 ? { search } : {};
       const res = await axios.get("/api/items", { params });
       const all: Item[] = res.data.data;
-      // Filter out items already in this container
-      setDialogItems(all.filter((item) => !container?.items?.some((ci) => ci.id === item.id)));
+      // Filter out items already in this container and items with terminal statuses
+      setDialogItems(
+        all
+          .filter((item) => !container?.items?.some((ci) => ci.id === item.id))
+          .filter((item) => item.status !== "Ready for Pickup" && item.status !== "Completed")
+      );
     } catch {
       setDialogItems([]);
     } finally {
@@ -100,7 +105,7 @@ export default function ContainerDetailPage() {
   }, [container]);
 
   useEffect(() => {
-    if (!addDialogOpen) { setDialogSearch(""); setDialogItems([]); return; }
+    if (!addDialogOpen) { setDialogSearch(""); setDialogItems([]); setAddedIds(new Set()); return; }
     loadDialogItems("");
   }, [addDialogOpen, loadDialogItems]);
 
@@ -186,7 +191,7 @@ export default function ContainerDetailPage() {
     try {
       await axios.post(`/api/containers/${id}/items`, { itemId });
       success("Item added to container");
-      setAddDialogOpen(false);
+      setAddedIds((prev) => new Set([...prev, itemId]));
       load();
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err)
@@ -526,17 +531,24 @@ export default function ContainerDetailPage() {
                         <p className="text-xs text-gray-500 truncate mt-0.5">
                           {item.description || "No description"}{item.weight ? ` · ${item.weight} kg` : ""}
                         </p>
+                        {item.trackingNumber && <p className="text-xs text-gray-400 font-mono">TRK: {item.trackingNumber}</p>}
                       </div>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => addItem(item.id)}
-                      loading={addingId === item.id}
-                      disabled={addingId !== null}
-                      className="ml-3 shrink-0"
-                    >
-                      Add
-                    </Button>
+                    {addedIds.has(item.id) ? (
+                      <div className="ml-3 shrink-0 p-1.5 rounded-full bg-green-50">
+                        <Check className="h-4 w-4 text-green-600" />
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => addItem(item.id)}
+                        loading={addingId === item.id}
+                        disabled={addingId !== null}
+                        className="ml-3 shrink-0"
+                      >
+                        Add
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

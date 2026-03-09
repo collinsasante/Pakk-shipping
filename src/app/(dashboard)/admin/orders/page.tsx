@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types";
-import { Plus, ShoppingCart, CheckCircle, Trash2, ExternalLink } from "lucide-react";
+import { Plus, ShoppingCart, Trash2, ExternalLink } from "lucide-react";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 
@@ -61,7 +61,6 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
-  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -110,19 +109,6 @@ export default function OrdersPage() {
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);
-    }
-  };
-
-  const markAsPaid = async (orderId: string, orderRef: string) => {
-    setMarkingPaid(orderId);
-    try {
-      await axios.patch(`/api/orders/${orderId}`, { status: "Paid" });
-      success("Order marked as paid!", orderRef);
-      load(search, statusFilter, page);
-    } catch {
-      error("Failed to update order");
-    } finally {
-      setMarkingPaid(null);
     }
   };
 
@@ -262,17 +248,6 @@ export default function OrdersPage() {
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
-                      )}
-                      {o.status === "Pending" && (
-                        <Button
-                          size="sm"
-                          variant="success"
-                          onClick={() => markAsPaid(o.id, o.orderRef)}
-                          loading={markingPaid === o.id}
-                        >
-                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                          Mark Paid
-                        </Button>
                       )}
                       <button
                         onClick={() => setConfirmDeleteId(o.id)}

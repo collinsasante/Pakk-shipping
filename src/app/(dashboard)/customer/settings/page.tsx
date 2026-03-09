@@ -241,7 +241,9 @@ export default function CustomerSettingsPage() {
                 {appUser?.package && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Package</span>
-                    <span className="text-gray-900 font-medium capitalize">{appUser.package}</span>
+                    <span className="text-gray-900 font-medium">
+                      {appUser.package === "standard" ? "Basic Shipping" : appUser.package === "discounted" ? "Business Shipping" : appUser.package === "premium" ? "Enterprise Logistics" : appUser.package}
+                    </span>
                   </div>
                 )}
               </CardContent>

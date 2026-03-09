@@ -27,10 +27,16 @@ const DEFAULT_PKG_RATES: PackageRates = {
 
 const PACKAGE_OPTIONS: { value: CustomerPackage | ""; label: string }[] = [
   { value: "", label: "No package" },
-  { value: "standard", label: "Standard" },
-  { value: "discounted", label: "Discounted" },
-  { value: "premium", label: "Premium" },
+  { value: "standard", label: "Basic Shipping" },
+  { value: "discounted", label: "Business Shipping" },
+  { value: "premium", label: "Enterprise Logistics" },
 ];
+
+const PACKAGE_LABELS: Record<CustomerPackage, string> = {
+  standard: "Basic Shipping",
+  discounted: "Business Shipping",
+  premium: "Enterprise Logistics",
+};
 
 const PACKAGE_COLORS: Record<CustomerPackage, string> = {
   standard: "bg-gray-100 text-gray-700",
@@ -67,6 +73,7 @@ export default function AdminSettingsPage() {
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [warehouseForm, setWarehouseForm] = useState({ name: "", address: "", country: "", phone: "" });
   const [savingWarehouse, setSavingWarehouse] = useState(false);
+  const [confirmDeleteWarehouseId, setConfirmDeleteWarehouseId] = useState<string | null>(null);
 
   // Per-customer packages
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -342,7 +349,7 @@ export default function AdminSettingsPage() {
                 {(["standard", "discounted", "premium"] as (keyof PackageRates)[]).map((pkg) => (
                   <div key={pkg} className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${PACKAGE_COLORS[pkg]}`}>{pkg}</span>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${PACKAGE_COLORS[pkg]}`}>{PACKAGE_LABELS[pkg]}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <Input
@@ -383,8 +390,8 @@ export default function AdminSettingsPage() {
                 </p>
                 <div className="flex gap-2 mt-2">
                   {(["standard", "discounted", "premium"] as CustomerPackage[]).map((pkg) => (
-                    <span key={pkg} className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${PACKAGE_COLORS[pkg]}`}>
-                      {pkg}
+                    <span key={pkg} className={`text-xs px-2.5 py-1 rounded-full font-medium ${PACKAGE_COLORS[pkg]}`}>
+                      {PACKAGE_LABELS[pkg]}
                     </span>
                   ))}
                 </div>
@@ -428,8 +435,8 @@ export default function AdminSettingsPage() {
                   key: "currentPackage",
                   header: "Current Package",
                   render: (c) => c.package ? (
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${PACKAGE_COLORS[c.package]}`}>
-                      {c.package}
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${PACKAGE_COLORS[c.package]}`}>
+                      {PACKAGE_LABELS[c.package]}
                     </span>
                   ) : (
                     <span className="text-xs text-gray-400">None</span>
@@ -548,13 +555,31 @@ export default function AdminSettingsPage() {
                           >
                             {w.isActive ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4" />}
                           </button>
-                          <button
-                            onClick={() => deleteWarehouse(w.id)}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          {confirmDeleteWarehouseId === w.id ? (
+                            <>
+                              <span className="text-xs text-red-600">Delete?</span>
+                              <button
+                                onClick={() => { deleteWarehouse(w.id); setConfirmDeleteWarehouseId(null); }}
+                                className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteWarehouseId(null)}
+                                className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteWarehouseId(w.id)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

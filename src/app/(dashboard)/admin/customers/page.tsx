@@ -51,6 +51,7 @@ export default function CustomersPage() {
   const router = useRouter();
   const { error, success } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export default function CustomersPage() {
       });
       setCustomers(res.data.data);
       setTotalPages(res.data.totalPages ?? 1);
+      setTotal(res.data.total ?? 0);
     } catch {
       error("Failed to load customers");
     } finally {
@@ -109,7 +111,7 @@ export default function CustomersPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="Customers" subtitle="Manage all customer accounts" />
+      <Header title="Customers" subtitle={total > 0 ? `${total} customers` : "Manage all customer accounts"} />
 
       <div className="flex-1 p-6 space-y-4">
         {/* Toolbar */}

@@ -7,7 +7,6 @@ import { StatusBadge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { AdminDashboardStats } from "@/types";
 import {
-  Users,
   Package,
   Container,
   SortAsc,
@@ -100,15 +99,6 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <StatCard
-            title="Total Customers"
-            value={stats?.totalCustomers ?? "—"}
-            subtitle={`${stats?.activeCustomers ?? 0} active`}
-            icon={Users}
-            iconColor="text-blue-600"
-            iconBg="bg-blue-50"
-            href="/admin/customers"
-          />
           <StatCard
             title="Items in Warehouse"
             value={stats?.itemsInWarehouse ?? "—"}

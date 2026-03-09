@@ -162,6 +162,8 @@ export interface Order {
   createdAt: string;
   keepupSaleId?: string;
   keepupLink?: string;
+  createdBy?: string;
+  customerPhone?: string;
 }
 
 export interface CreateOrderInput {
@@ -178,6 +180,7 @@ export interface UpdateOrderInput {
   status?: OrderStatus;
   notes?: string;
   itemIds?: string[];
+  paymentAmount?: number;
 }
 
 // ============================================================

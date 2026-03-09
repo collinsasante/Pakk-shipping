@@ -10,7 +10,7 @@ import { TrackingTimeline } from "@/components/shared/TrackingTimeline";
 import { formatDate } from "@/lib/utils";
 import { ITEM_STATUS_STEPS } from "@/lib/utils";
 import type { Item, ItemStatus, StatusHistory, Warehouse } from "@/types";
-import { Package, X, Hash, MapPin, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
+import { Package, X, Hash, Copy, Check } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
@@ -68,7 +68,6 @@ export default function CustomerItemsPage() {
   const { appUser } = useAuth();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(null);
-  const [showWarehouseSelector, setShowWarehouseSelector] = useState(false);
   const [copied, setCopied] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,7 +172,7 @@ export default function CustomerItemsPage() {
 
             return (
               <div className="bg-brand-50 border border-brand-100 rounded-xl overflow-hidden">
-                {/* Main shipping mark display */}
+                {/* Shipping mark display */}
                 <div className="p-4">
                   <p className="text-xs font-bold text-brand-700 uppercase tracking-wide mb-2">Your Shipping Mark</p>
                   <div className="flex items-center gap-2">
@@ -188,58 +187,19 @@ export default function CustomerItemsPage() {
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-brand-600 mt-1">Mark this on every package you send to our warehouse.</p>
-                </div>
-
-                {/* Warehouse selector */}
-                {warehouses.length > 0 && (
-                  <div className="border-t border-brand-100">
-                    <button
-                      onClick={() => setShowWarehouseSelector((v) => !v)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-brand-100/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <MapPin className="h-3.5 w-3.5 text-brand-600 shrink-0" />
-                        <span className="text-xs font-medium text-brand-700 truncate">
-                          {selectedWarehouse ? `${selectedWarehouse.name} · ${selectedWarehouse.address}` : "Select warehouse"}
-                        </span>
-                      </div>
-                      {showWarehouseSelector
-                        ? <ChevronUp className="h-3.5 w-3.5 text-brand-500 shrink-0" />
-                        : <ChevronDown className="h-3.5 w-3.5 text-brand-500 shrink-0" />}
-                    </button>
-
-                    {showWarehouseSelector && (
-                      <div className="px-4 pb-3 space-y-1.5">
-                        {warehouses.map((w) => (
-                          <button
-                            key={w.id}
-                            onClick={() => {
-                              setSelectedWarehouseId(w.id);
-                              localStorage.setItem("pakk_preferred_warehouse", w.id);
-                              setShowWarehouseSelector(false);
-                            }}
-                            className={`w-full flex items-start gap-2.5 p-2.5 rounded-lg border text-left transition-colors ${
-                              selectedWarehouseId === w.id
-                                ? "border-brand-400 bg-brand-100"
-                                : "border-brand-200 bg-white hover:bg-brand-50"
-                            }`}
-                          >
-                            <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                              selectedWarehouseId === w.id ? "border-brand-600 bg-brand-600" : "border-gray-300"
-                            }`}>
-                              {selectedWarehouseId === w.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-gray-900">{w.name}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">{w.address}{w.phone ? ` · ${w.phone}` : ""}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-brand-600">Mark this on every package you send to our warehouse.</p>
+                    <a href="/customer/addresses" className="text-xs text-brand-700 font-medium hover:underline shrink-0 ml-2">
+                      Change warehouse →
+                    </a>
                   </div>
-                )}
+                  {selectedWarehouse && (
+                    <p className="text-xs text-brand-600 mt-0.5">
+                      <a href="/customer/addresses" className="font-medium hover:underline">{selectedWarehouse.name}</a>
+                      {selectedWarehouse.address ? ` · ${selectedWarehouse.address}` : ""}
+                    </p>
+                  )}
+                </div>
               </div>
             );
           })()}

@@ -4,17 +4,22 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Order, Item } from "@/types";
 import {
   ArrowLeft,
   Package,
-  CheckCircle,
   Trash2,
   ExternalLink,
-  Save,
-  RefreshCw,
+  DollarSign,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 
@@ -36,28 +41,29 @@ export default function AdminOrderDetailPage() {
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [markingPaid, setMarkingPaid] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
 
-  // Editable form state
-  const [invoiceAmount, setInvoiceAmount] = useState("");
-  const [invoiceDate, setInvoiceDate] = useState("");
-  const [notes, setNotes] = useState("");
-  const [dirty, setDirty] = useState(false);
+  // Extra info
+  const [customerPhone, setCustomerPhone] = useState<string>("");
+
+  // Record Payment modal
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [savingPayment, setSavingPayment] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const res = await axios.get(`/api/orders/${id}`);
       const o: OrderDetail = res.data.data;
       setOrder(o);
-      setInvoiceAmount(String(o.invoiceAmount));
-      setInvoiceDate(o.invoiceDate ?? "");
-      setNotes(o.notes ?? "");
-      setDirty(false);
+      // Fetch customer phone
+      if (o.customerId) {
+        axios.get(`/api/customers/${o.customerId}`).then((cRes) => {
+          setCustomerPhone(cRes.data.data?.phone ?? "");
+        }).catch(() => {});
+      }
     } catch {
       error("Failed to load order");
     } finally {
@@ -66,42 +72,6 @@ export default function AdminOrderDetailPage() {
   }, [id, error]);
 
   useEffect(() => { load(); }, [load]);
-
-  const handleSave = async (syncToKeeup = false) => {
-    if (!order) return;
-    setSaving(true);
-    if (syncToKeeup) setSyncing(true);
-    try {
-      await axios.patch(`/api/orders/${id}`, {
-        invoiceAmount: Number(invoiceAmount),
-        invoiceDate,
-        notes: notes || undefined,
-        syncKeeup: syncToKeeup,
-      });
-      success("Invoice saved" + (syncToKeeup ? " & synced to Keepup" : ""));
-      setDirty(false);
-      load();
-    } catch {
-      error("Failed to save invoice");
-    } finally {
-      setSaving(false);
-      setSyncing(false);
-    }
-  };
-
-  const handleMarkPaid = async () => {
-    if (!order) return;
-    setMarkingPaid(true);
-    try {
-      await axios.patch(`/api/orders/${id}`, { status: "Paid" });
-      success("Marked as paid!", order.orderRef);
-      load();
-    } catch {
-      error("Failed to update order");
-    } finally {
-      setMarkingPaid(false);
-    }
-  };
 
   const handleCreateInvoice = async () => {
     if (!order) return;
@@ -128,6 +98,26 @@ export default function AdminOrderDetailPage() {
       error("Failed to delete order");
       setDeleting(false);
       setConfirmDelete(false);
+    }
+  };
+
+  const handleSavePayment = async () => {
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) {
+      error("Invalid amount", "Please enter a valid payment amount");
+      return;
+    }
+    setSavingPayment(true);
+    try {
+      await axios.patch(`/api/orders/${id}`, { paymentAmount: amount });
+      success("Payment recorded");
+      setPaymentModalOpen(false);
+      setPaymentAmount("");
+      load();
+    } catch {
+      error("Failed to record payment");
+    } finally {
+      setSavingPayment(false);
     }
   };
 
@@ -183,12 +173,10 @@ export default function AdminOrderDetailPage() {
               Create Invoice
             </Button>
           )}
-          {order.status !== "Paid" && (
-            <Button size="sm" variant="success" onClick={handleMarkPaid} loading={markingPaid}>
-              <CheckCircle className="h-3.5 w-3.5 mr-1" />
-              Mark Paid
-            </Button>
-          )}
+          <Button size="sm" variant="outline" onClick={() => { setPaymentAmount(""); setPaymentModalOpen(true); }}>
+            <DollarSign className="h-3.5 w-3.5 mr-1" />
+            Record Payment
+          </Button>
           {confirmDelete ? (
             <>
               <span className="text-xs text-red-600">Delete?</span>
@@ -206,14 +194,13 @@ export default function AdminOrderDetailPage() {
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: editable form */}
+          {/* Left: read-only invoice details */}
           <div className="lg:col-span-2 space-y-5">
-            {/* Invoice form */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-5">Invoice Details</h3>
 
               <div className="space-y-4">
-                {/* Customer - read only */}
+                {/* Customer */}
                 <div>
                   <label className="block text-xs font-medium text-gray-400 mb-1">Customer</label>
                   <button
@@ -227,49 +214,18 @@ export default function AdminOrderDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-400 mb-1">Invoice Amount (GHS)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={invoiceAmount}
-                      onChange={(e) => { setInvoiceAmount(e.target.value); setDirty(true); }}
-                      className="h-10 w-full px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
+                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(order.invoiceAmount)}</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-400 mb-1">Invoice Date</label>
-                    <input
-                      type="date"
-                      value={invoiceDate}
-                      onChange={(e) => { setInvoiceDate(e.target.value); setDirty(true); }}
-                      className="h-10 w-full px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
+                    <p className="text-sm text-gray-900">{order.invoiceDate ? formatDate(order.invoiceDate) : "—"}</p>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1">Notes</label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => { setNotes(e.target.value); setDirty(true); }}
-                    rows={3}
-                    placeholder="Notes visible on the invoice..."
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                  />
-                </div>
-
-                {dirty && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button size="sm" variant="outline" onClick={() => handleSave(false)} loading={saving && !syncing}>
-                      <Save className="h-3.5 w-3.5 mr-1" />
-                      Save
-                    </Button>
-                    {order.keepupSaleId && (
-                      <Button size="sm" onClick={() => handleSave(true)} loading={saving && syncing}>
-                        <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                        Save & Sync to Keepup
-                      </Button>
-                    )}
+                {order.notes && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Notes</label>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{order.notes}</p>
                   </div>
                 )}
               </div>
@@ -342,6 +298,18 @@ export default function AdminOrderDetailPage() {
                   <span className="text-xs text-gray-400">Invoice Total</span>
                   <span className="text-base font-bold text-gray-900">{formatCurrency(order.invoiceAmount)}</span>
                 </div>
+                {order.createdBy && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Created by</span>
+                    <span className="text-xs text-gray-700">{order.createdBy}</span>
+                  </div>
+                )}
+                {customerPhone && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Customer Phone</span>
+                    <span className="text-xs text-gray-700">{customerPhone}</span>
+                  </div>
+                )}
                 {order.status === "Partial" && (
                   <p className="text-xs text-orange-600 bg-orange-50 rounded-lg p-2">
                     Partial payment received. Check Keepup for payment details.
@@ -385,6 +353,35 @@ export default function AdminOrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Record Payment Modal */}
+      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-brand-600" />
+              Record Payment
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Payment Amount (GHS)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              className="h-10 w-full px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSavePayment} loading={savingPayment}>Save Payment</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
