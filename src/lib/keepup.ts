@@ -72,9 +72,9 @@ export async function createKeepupSale(
     issue_date: issueDate,
     due_date: dueDate,
   };
-  if (params.customerName) body.name = params.customerName;
-  if (params.customerEmail) body.email = params.customerEmail;
-  if (params.customerPhone) body.phone = params.customerPhone;
+  if (params.customerName) body.customer_name = params.customerName;
+  if (params.customerEmail) body.customer_email = params.customerEmail;
+  if (params.customerPhone) body.phone_number = params.customerPhone;
   // Note: intentionally omitting note/reference from Keepup invoice
 
   console.log("[keepup] createKeepupSale request body:", JSON.stringify(body, null, 2));
@@ -177,9 +177,9 @@ export async function updateKeepupSale(
 ): Promise<void> {
   const body: Record<string, unknown> = {};
 
-  if (params.customerName) body.name = params.customerName;
-  if (params.customerEmail) body.email = params.customerEmail;
-  if (params.customerPhone) body.phone = params.customerPhone;
+  if (params.customerName) body.customer_name = params.customerName;
+  if (params.customerEmail) body.customer_email = params.customerEmail;
+  if (params.customerPhone) body.phone_number = params.customerPhone;
   if (params.invoiceDate) {
     body.issue_date = toKeepupDate(params.invoiceDate);
     const dueDateObj = new Date(params.invoiceDate);
