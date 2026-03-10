@@ -21,7 +21,7 @@ export default function CustomerAddressesPage() {
     try {
       const res = await axios.get("/api/warehouses");
       const list: Warehouse[] = res.data.data;
-      setWarehouses(list.filter((w) => w.isActive));
+      setWarehouses(list);
       // Restore saved selection
       const saved = localStorage.getItem("pakk_preferred_warehouse");
       const match = list.find((w) => w.id === saved);
