@@ -434,7 +434,8 @@ export default function CustomerDetailPage() {
 }
 
 function InfoRow({
-  icon: Icon,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  icon: _Icon,
   label,
   value,
   children,
@@ -445,16 +446,13 @@ function InfoRow({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-2.5">
-      <Icon className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
-      <div className="min-w-0">
-        <p className="text-xs text-gray-500">{label}</p>
-        {children ?? (
-          <p className="text-sm text-gray-800 font-medium break-words">
-            {value ?? "—"}
-          </p>
-        )}
-      </div>
+    <div>
+      <p className="text-xs text-gray-500">{label}</p>
+      {children ?? (
+        <p className="text-sm text-gray-800 font-medium break-words">
+          {value ?? "—"}
+        </p>
+      )}
     </div>
   );
 }

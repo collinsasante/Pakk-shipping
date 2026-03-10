@@ -57,6 +57,7 @@ export default function AdminItemDetailPage() {
 
   const [item, setItem] = useState<ItemDetail | null>(null);
   const [history, setHistory] = useState<StatusHistory[]>([]);
+  const [containerDisplayName, setContainerDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusModal, setStatusModal] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -83,7 +84,16 @@ export default function AdminItemDetailPage() {
         axios.get(`/api/items/${id}`),
         axios.get(`/api/items/${id}/history`),
       ]);
-      setItem(itemRes.data.data);
+      const loadedItem: ItemDetail = itemRes.data.data;
+      setItem(loadedItem);
+      // Resolve container display name if lookup field is empty
+      if (loadedItem.containerId && !loadedItem.containerName) {
+        axios.get(`/api/containers/${loadedItem.containerId}`).then((r) => {
+          setContainerDisplayName(r.data.data?.containerId ?? null);
+        }).catch(() => {});
+      } else {
+        setContainerDisplayName(loadedItem.containerName ?? null);
+      }
       const historyData = historyRes.data.data ?? [];
       console.log("[ItemDetail] history response:", historyRes.data, "parsed:", historyData);
       setHistory(historyData);
@@ -371,7 +381,7 @@ export default function AdminItemDetailPage() {
                         onClick={() => router.push(`/admin/containers/${item.containerId}`)}
                         className="text-brand-600 hover:underline"
                       >
-                        {item.containerName ?? item.containerId}
+                        {containerDisplayName ?? item.containerName ?? "View Container"}
                       </button>
                     } />
                   )}

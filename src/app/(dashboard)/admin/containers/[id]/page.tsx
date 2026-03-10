@@ -322,10 +322,12 @@ export default function ContainerDetailPage() {
               <h3 className="font-semibold text-gray-900">
                 Items ({container.items?.length ?? 0})
               </h3>
-              <Button size="sm" onClick={() => setAddDialogOpen(true)}>
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Add Item
-              </Button>
+              {container.status !== "Shipped to Ghana" && container.status !== "Arrived in Ghana" && (
+                <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Add Item
+                </Button>
+              )}
             </div>
 
             <div className="flex gap-4 relative">

@@ -52,6 +52,7 @@ export default function AdminOrderDetailPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentLog, setPaymentLog] = useState<{ amount: number; at: string }[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -111,6 +112,7 @@ export default function AdminOrderDetailPage() {
     try {
       await axios.patch(`/api/orders/${id}`, { paymentAmount: amount });
       success("Payment recorded");
+      setPaymentLog((prev) => [...prev, { amount, at: new Date().toLocaleTimeString() }]);
       setPaymentModalOpen(false);
       setPaymentAmount("");
       load();
@@ -308,6 +310,17 @@ export default function AdminOrderDetailPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-400">Customer Phone</span>
                     <span className="text-xs text-gray-700">{customerPhone}</span>
+                  </div>
+                )}
+                {paymentLog.length > 0 && (
+                  <div className="border-t border-gray-50 pt-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Payment Log</p>
+                    {paymentLog.map((entry, i) => (
+                      <div key={i} className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">{entry.at}</span>
+                        <span className="font-semibold text-green-700">+{formatCurrency(entry.amount)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {order.status === "Partial" && (

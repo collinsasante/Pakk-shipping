@@ -15,6 +15,7 @@ export default function CustomerAddressesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedWarehouseId, setCopiedWarehouseId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -49,6 +50,15 @@ export default function CustomerAddressesPage() {
     navigator.clipboard.writeText(fullMark).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
+
+  const copyWarehouseAddress = (w: Warehouse) => {
+    const mark = appUser?.shippingMark ? ` (${appUser.shippingMark})` : "";
+    const text = `${w.address}${mark}`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedWarehouseId(w.id);
+      setTimeout(() => setCopiedWarehouseId(null), 2000);
     }).catch(() => {});
   };
 
@@ -100,33 +110,46 @@ export default function CustomerAddressesPage() {
               {warehouses.map((w) => {
                 const isSelected = selectedWarehouseId === w.id;
                 return (
-                  <button
+                  <div
                     key={w.id}
-                    onClick={() => selectWarehouse(w.id)}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                    className={`p-4 rounded-xl border-2 transition-all ${
                       isSelected
                         ? "border-brand-500 bg-brand-50 shadow-sm"
                         : "border-gray-200 bg-white hover:border-brand-300 hover:bg-brand-50/50"
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
-                        isSelected ? "border-brand-600 bg-brand-600" : "border-gray-300"
-                      }`}>
-                        {isSelected && <Check className="h-3 w-3 text-white" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
+                      <button onClick={() => selectWarehouse(w.id)} className="mt-0.5 shrink-0">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          isSelected ? "border-brand-600 bg-brand-600" : "border-gray-300"
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                      </button>
+                      <button onClick={() => selectWarehouse(w.id)} className="flex-1 min-w-0 text-left">
                         <p className="text-sm font-semibold text-gray-900">{w.name}</p>
                         <p className="text-sm text-gray-600 mt-0.5">{w.address}</p>
                         {w.phone && <p className="text-xs text-gray-500 mt-0.5">{w.phone}</p>}
+                      </button>
+                      <div className="shrink-0 flex items-center gap-2">
+                        {isSelected && (
+                          <span className="text-xs font-medium text-brand-700 bg-brand-100 px-2 py-0.5 rounded-full">
+                            Selected
+                          </span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); copyWarehouseAddress(w); }}
+                          className="p-1.5 rounded-lg hover:bg-white/80 text-gray-400 hover:text-brand-600 transition-colors"
+                          title="Copy address + shipping mark"
+                        >
+                          {copiedWarehouseId === w.id
+                            ? <CheckCheck className="h-4 w-4 text-green-500" />
+                            : <Copy className="h-4 w-4" />
+                          }
+                        </button>
                       </div>
-                      {isSelected && (
-                        <span className="shrink-0 text-xs font-medium text-brand-700 bg-brand-100 px-2 py-0.5 rounded-full">
-                          Selected
-                        </span>
-                      )}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
