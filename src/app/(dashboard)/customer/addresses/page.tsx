@@ -139,7 +139,7 @@ export default function CustomerAddressesPage() {
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); copyWarehouseAddress(w); }}
-                          className="p-1.5 rounded-lg hover:bg-white/80 text-gray-400 hover:text-brand-600 transition-colors"
+                          className="shrink-0 p-1 rounded hover:bg-brand-100 transition-colors"
                           title="Copy address + shipping mark"
                         >
                           {copiedWarehouseId === w.id

@@ -55,6 +55,19 @@ export async function GET(
       }
     }
 
+    // Fetch Keepup payment status (non-fatal)
+    let keepupAmountPaid: number | null = null;
+    let keepupBalanceDue: number | null = null;
+    if (order.keepupSaleId) {
+      try {
+        const ks = await getKeepupSale(order.keepupSaleId);
+        keepupAmountPaid = ks.amountPaid;
+        keepupBalanceDue = ks.balanceDue;
+      } catch {
+        // non-fatal
+      }
+    }
+
     // Hydrate items — log failures but return partial data
     const items = order.itemIds.length
       ? (
@@ -71,7 +84,7 @@ export async function GET(
 
     return Response.json({
       success: true,
-      data: { ...order, items },
+      data: { ...order, items, keepupAmountPaid, keepupBalanceDue },
     });
   } catch (err) {
     console.error("[GET /orders/[id]] Error:", err);

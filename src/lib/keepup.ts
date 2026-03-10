@@ -87,7 +87,7 @@ export async function createKeepupSale(
   };
   if (params.customerName) body.customer_name = params.customerName;
   if (params.customerEmail && params.customerEmail.includes("@")) body.customer_email = params.customerEmail;
-  if (normalizedPhone) body.customer_phone = normalizedPhone;
+  if (normalizedPhone) body.phone_number = normalizedPhone;
 
   console.log("[keepup] createKeepupSale — app data check:");
   console.log("  customerName:", params.customerName);
