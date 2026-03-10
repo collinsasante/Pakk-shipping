@@ -9,7 +9,6 @@ import type { Order, Item } from "@/types";
 import {
   ArrowLeft,
   Package,
-  Trash2,
   ExternalLink,
   DollarSign,
 } from "lucide-react";
@@ -164,19 +163,7 @@ export default function AdminOrderDetailPage() {
         <StatusBadge status={order.status} />
 
         <div className="ml-auto flex items-center gap-2">
-          {order.keepupSaleId ? (
-            order.keepupLink && (
-              <a
-                href={order.keepupLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-800 border border-brand-200 rounded-lg px-3 py-1.5 hover:bg-brand-50 transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                View on Keepup
-              </a>
-            )
-          ) : (
+          {!order.keepupSaleId && (
             <Button size="sm" variant="outline" onClick={handleCreateInvoice} loading={creatingInvoice}>
               <ExternalLink className="h-3.5 w-3.5 mr-1" />
               Create Invoice
@@ -186,18 +173,6 @@ export default function AdminOrderDetailPage() {
             <DollarSign className="h-3.5 w-3.5 mr-1" />
             Record Payment
           </Button>
-          {confirmDelete ? (
-            <>
-              <span className="text-xs text-red-600">Delete?</span>
-              <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50" loading={deleting} onClick={handleDelete}>Confirm</Button>
-              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button>
-            </>
-          ) : (
-            <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50" onClick={() => setConfirmDelete(true)}>
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
-              Delete
-            </Button>
-          )}
         </div>
       </div>
 
@@ -366,17 +341,44 @@ export default function AdminOrderDetailPage() {
                     <span className="text-xs text-gray-400">Sale ID</span>
                     <span className="text-xs font-mono text-gray-600">{order.keepupSaleId}</span>
                   </div>
-                  {order.keepupLink && (
-                    <a
-                      href={order.keepupLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs text-brand-600 hover:underline mt-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Open invoice
-                    </a>
-                  )}
+                  <div className="flex gap-2 pt-1">
+                    {order.keepupLink && (
+                      <a
+                        href={order.keepupLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3 text-xs gap-1.5"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Open Invoice
+                      </a>
+                    )}
+                    {confirmDelete ? (
+                      <>
+                        <span className="text-xs text-red-600 self-center">Cancel?</span>
+                        <button
+                          className="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border bg-background hover:text-accent-foreground h-8 rounded-md px-3 text-xs border-red-300 text-red-600 hover:bg-red-50"
+                          disabled={deleting}
+                          onClick={handleDelete}
+                        >
+                          {deleting ? "Cancelling..." : "Confirm"}
+                        </button>
+                        <button
+                          className="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3 text-xs"
+                          onClick={() => setConfirmDelete(false)}
+                        >
+                          Back
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border bg-background hover:text-accent-foreground h-8 rounded-md px-3 text-xs border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() => setConfirmDelete(true)}
+                      >
+                        Cancel Invoice
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

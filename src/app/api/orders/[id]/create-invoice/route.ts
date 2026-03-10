@@ -46,29 +46,25 @@ export async function POST(
     });
 
     const validItems = items.filter(Boolean);
-    const pricePerItem = validItems.length > 0
-      ? order.invoiceAmount / validItems.length
-      : order.invoiceAmount;
 
-    const lineItems = validItems.length > 0
+    // Build item descriptions for the single line item note
+    const itemDesc = validItems.length > 0
       ? validItems.map((item) => {
-          const qty = item!.quantity ?? 1;
-          let cbmNote = "";
-          if (item!.length && item!.width && item!.height) {
-            const factor = item!.dimensionUnit === "inches" ? 16.387064 : 1;
-            const cbm = (item!.length * item!.width * item!.height * factor * qty) / 1_000_000;
-            cbmNote = ` [CBM: ${cbm.toFixed(4)} m3]`;
-          }
-          const trackingNote = item!.trackingNumber ? ` [TRK: ${item!.trackingNumber}]` : "";
-          const rawName = (item!.description ? `Freight: ${item!.description}` : `Freight Item (${item!.itemRef})`) + trackingNote + cbmNote;
-          return {
-            item_name: rawName.replace(/[^\x20-\x7E]/g, ""),
-            quantity: 1,
-            price: Math.round(pricePerItem * 100) / 100,
-            item_type: "product",
-          };
-        })
-      : [{ item_name: `Freight - ${order.orderRef}`, quantity: 1, price: Math.round(order.invoiceAmount * 100) / 100, item_type: "product" }];
+          const trk = item!.trackingNumber ? ` [TRK: ${item!.trackingNumber}]` : "";
+          return (item!.description || item!.itemRef) + trk;
+        }).join("; ")
+      : null;
+
+    const lineName = itemDesc
+      ? `Freight - ${order.orderRef}: ${itemDesc}`
+      : `Freight - ${order.orderRef}`;
+
+    const lineItems = [{
+      item_name: lineName.replace(/[^\x20-\x7E]/g, "").slice(0, 200),
+      quantity: 1,
+      price: Math.round(order.invoiceAmount * 100) / 100,
+      item_type: "product",
+    }];
 
     console.log("[create-invoice] lineItems:", JSON.stringify(lineItems));
 

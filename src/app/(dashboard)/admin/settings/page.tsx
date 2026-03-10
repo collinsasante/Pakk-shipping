@@ -6,15 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
-import { SearchBar } from "@/components/shared/SearchBar";
-import { DataTable } from "@/components/shared/DataTable";
-import type { Customer, CustomerPackage } from "@/types";
-import { Settings, DollarSign, Users, Save, RefreshCw, Package, Warehouse, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import type { CustomerPackage } from "@/types";
+import { DollarSign, Save, Package, Warehouse, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import axios from "axios";
 import type { Warehouse as WarehouseType } from "@/types";
 
 const RATES_KEY = "pakk_exchange_rates";
-const COMPANY_KEY = "pakk_company_settings";
 const PACKAGES_RATES_KEY = "pakk_package_rates";
 
 interface PackageRate { sea: number; air: number; }
@@ -44,24 +41,9 @@ const PACKAGE_COLORS: Record<CustomerPackage, string> = {
   premium: "bg-amber-50 text-amber-700",
 };
 
-interface CompanySettings {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-}
-
 export default function AdminSettingsPage() {
   const { success, error } = useToast();
-  const [activeTab, setActiveTab] = useState<"company" | "exchange" | "packages" | "warehouses">("company");
-
-  // Company settings (localStorage)
-  const [company, setCompany] = useState<CompanySettings>({
-    name: "Pakkmaxx",
-    address: "PAKKMAXX-9899-IRENE, Pakkmaxx Warehouse, Accra, Ghana",
-    phone: "",
-    email: "",
-  });
+  const [activeTab, setActiveTab] = useState<"exchange" | "warehouses">("exchange");
 
   // Exchange rate settings
   const [defaultRate, setDefaultRate] = useState("12.5");
@@ -75,13 +57,6 @@ export default function AdminSettingsPage() {
   const [savingWarehouse, setSavingWarehouse] = useState(false);
   const [confirmDeleteWarehouseId, setConfirmDeleteWarehouseId] = useState<string | null>(null);
 
-  // Per-customer packages
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [loadingCustomers, setLoadingCustomers] = useState(false);
-  const [savingCustomerId, setSavingCustomerId] = useState<string | null>(null);
-  const [customerPackages, setCustomerPackages] = useState<Record<string, CustomerPackage | "">>({});
-
   useEffect(() => {
     try {
       const saved = localStorage.getItem(RATES_KEY);
@@ -91,20 +66,11 @@ export default function AdminSettingsPage() {
         if (parsed.shippingRatePerCbm) setShippingRatePerCbm(String(parsed.shippingRatePerCbm));
       }
     } catch {}
-    const savedCompany = localStorage.getItem(COMPANY_KEY);
-    if (savedCompany) {
-      try { setCompany(JSON.parse(savedCompany)); } catch {}
-    }
     const savedPkgRates = localStorage.getItem(PACKAGES_RATES_KEY);
     if (savedPkgRates) {
       try { setPkgRates(JSON.parse(savedPkgRates)); } catch {}
     }
   }, []);
-
-  const saveCompany = () => {
-    localStorage.setItem(COMPANY_KEY, JSON.stringify(company));
-    success("Company settings saved");
-  };
 
   const saveDefaultRate = () => {
     const usdToGhs = parseFloat(defaultRate);
@@ -126,28 +92,9 @@ export default function AdminSettingsPage() {
     success("Package rates saved");
   };
 
-  const loadCustomers = useCallback(async (search?: string) => {
-    setLoadingCustomers(true);
-    try {
-      const res = await axios.get("/api/customers", { params: { search } });
-      const list: Customer[] = res.data.data;
-      setCustomers(list);
-      const pkgMap: Record<string, CustomerPackage | ""> = {};
-      list.forEach((c) => {
-        pkgMap[c.id] = c.package ?? "";
-      });
-      setCustomerPackages((prev) => ({ ...pkgMap, ...prev }));
-    } catch {
-      error("Failed to load customers");
-    } finally {
-      setLoadingCustomers(false);
-    }
-  }, [error]);
-
   useEffect(() => {
-    if (activeTab === "packages") loadCustomers();
     if (activeTab === "warehouses") loadWarehouses();
-  }, [activeTab, loadCustomers]);
+  }, [activeTab]);
 
   const loadWarehouses = async () => {
     setLoadingWarehouses(true);
@@ -198,25 +145,8 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const saveCustomerPackage = async (customerId: string) => {
-    const pkg = customerPackages[customerId];
-    setSavingCustomerId(customerId);
-    try {
-      await axios.patch(`/api/customers/${customerId}`, {
-        package: pkg || undefined,
-      });
-      success("Package saved");
-    } catch {
-      error("Failed to save package");
-    } finally {
-      setSavingCustomerId(null);
-    }
-  };
-
   const tabs = [
-    { id: "company" as const, label: "Company", icon: Settings },
     { id: "exchange" as const, label: "Exchange Rates", icon: DollarSign },
-    { id: "packages" as const, label: "Customer Packages", icon: Package },
     { id: "warehouses" as const, label: "Warehouses", icon: Warehouse },
   ];
 
@@ -245,47 +175,6 @@ export default function AdminSettingsPage() {
             );
           })}
         </div>
-
-        {/* Company Settings */}
-        {activeTab === "company" && (
-          <div className="max-w-xl space-y-5">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-brand-600" />
-                  Company Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  label="Company Name"
-                  value={company.name}
-                  onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                />
-                <Input
-                  label="Address"
-                  value={company.address}
-                  onChange={(e) => setCompany({ ...company, address: e.target.value })}
-                />
-                <Input
-                  label="Phone"
-                  value={company.phone}
-                  onChange={(e) => setCompany({ ...company, phone: e.target.value })}
-                />
-                <Input
-                  label="Email"
-                  type="email"
-                  value={company.email}
-                  onChange={(e) => setCompany({ ...company, email: e.target.value })}
-                />
-              </CardContent>
-            </Card>
-            <Button onClick={saveCompany} className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              Save Company Settings
-            </Button>
-          </div>
-        )}
 
         {/* Exchange Rate Settings */}
         {activeTab === "exchange" && (
@@ -377,109 +266,6 @@ export default function AdminSettingsPage() {
               <Save className="h-4 w-4" />
               Save Package Rates
             </Button>
-          </div>
-        )}
-
-        {/* Customer Packages */}
-        {activeTab === "packages" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">
-                  Assign a pricing package to each customer.
-                </p>
-                <div className="flex gap-2 mt-2">
-                  {(["standard", "discounted", "premium"] as CustomerPackage[]).map((pkg) => (
-                    <span key={pkg} className={`text-xs px-2.5 py-1 rounded-full font-medium ${PACKAGE_COLORS[pkg]}`}>
-                      {PACKAGE_LABELS[pkg]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <SearchBar
-                  placeholder="Search customers..."
-                  onSearch={(val) => {
-                    setCustomerSearch(val);
-                    loadCustomers(val);
-                  }}
-                  className="w-64"
-                />
-                <button
-                  onClick={() => loadCustomers(customerSearch)}
-                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <DataTable
-              columns={[
-                {
-                  key: "name",
-                  header: "Customer",
-                  render: (c) => (
-                    <div>
-                      <p className="font-medium text-sm text-gray-900">{c.name}</p>
-                      <code className="text-xs text-gray-400 font-mono">{c.shippingMark}</code>
-                    </div>
-                  ),
-                },
-                {
-                  key: "email",
-                  header: "Email",
-                  render: (c) => <span className="text-sm text-gray-500">{c.email}</span>,
-                },
-                {
-                  key: "currentPackage",
-                  header: "Current Package",
-                  render: (c) => c.package ? (
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${PACKAGE_COLORS[c.package]}`}>
-                      {PACKAGE_LABELS[c.package]}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-gray-400">None</span>
-                  ),
-                },
-                {
-                  key: "package",
-                  header: "Assign Package",
-                  render: (c) => (
-                    <select
-                      value={customerPackages[c.id] ?? ""}
-                      onChange={(e) =>
-                        setCustomerPackages((prev) => ({ ...prev, [c.id]: e.target.value as CustomerPackage | "" }))
-                      }
-                      className="h-8 text-sm px-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    >
-                      {PACKAGE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  ),
-                },
-                {
-                  key: "actions",
-                  header: "",
-                  render: (c) => (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      loading={savingCustomerId === c.id}
-                      onClick={() => saveCustomerPackage(c.id)}
-                    >
-                      Save
-                    </Button>
-                  ),
-                },
-              ]}
-              data={customers}
-              keyExtractor={(c) => c.id}
-              loading={loadingCustomers}
-              emptyMessage="No customers found"
-              emptyIcon={<Users className="h-10 w-10" />}
-            />
           </div>
         )}
 

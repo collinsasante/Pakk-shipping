@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
-import { Calculator, ArrowLeftRight, Package, Anchor, Wind, ChevronDown } from "lucide-react";
+import { Calculator, Package, Anchor, Wind, ChevronDown } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import type { CustomerPackage } from "@/types";
 import axios from "axios";
 
-type Tab = "estimator" | "cbm" | "currency";
+type Tab = "estimator" | "cbm";
 type DimUnit = "cm" | "inches";
 
 interface PackageRate { sea: number; air: number; }
@@ -55,6 +55,7 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
 export default function CustomerCalculatorPage() {
   const { appUser } = useAuth();
   const [tab, setTab] = useState<Tab>("estimator");
+  // Currency state kept for internal rate use
   const [ghsPerUsd, setGhsPerUsd] = useState(15.5);
   const [pkgRates, setPkgRates] = useState<PackageRates>(DEFAULT_PKG_RATES);
   const [activePackage, setActivePackage] = useState<CustomerPackage | null>(null);
@@ -123,7 +124,6 @@ export default function CustomerCalculatorPage() {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "estimator", label: "Shipping Estimator", icon: <Package className="h-4 w-4" /> },
     { id: "cbm", label: "CBM Calculator", icon: <Calculator className="h-4 w-4" /> },
-    { id: "currency", label: "Currency", icon: <ArrowLeftRight className="h-4 w-4" /> },
   ];
 
   return (
@@ -276,28 +276,6 @@ export default function CustomerCalculatorPage() {
           </div>
         )}
 
-        {/* Currency Converter */}
-        {tab === "currency" && (
-          <div className="max-w-sm space-y-4">
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-5">
-              <div>
-                <p className="text-sm font-semibold text-gray-800 mb-1">Exchange Rate</p>
-                <p className="text-xs text-gray-400">1 USD = {ghsPerUsd} GHS</p>
-              </div>
-              <Field label="Amount in USD ($)" value={usdAmount} onChange={(v) => { setUsdAmount(v); setGhsAmount(v ? (parseFloat(v) * ghsPerUsd).toFixed(2) : ""); }} prefix="$" placeholder="e.g. 100" />
-              <div className="flex items-center gap-3"><div className="flex-1 h-px bg-gray-100" /><ArrowLeftRight className="h-4 w-4 text-gray-300" /><div className="flex-1 h-px bg-gray-100" /></div>
-              <Field label="Amount in GHS (GH₵)" value={ghsAmount} onChange={(v) => { setGhsAmount(v); setUsdAmount(v ? (parseFloat(v) / ghsPerUsd).toFixed(2) : ""); }} prefix="GH₵" placeholder="e.g. 1550" />
-            </div>
-            {n(usdAmount) > 0 && (
-              <div className="bg-green-50 border border-green-100 rounded-2xl p-5 space-y-2">
-                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Result</p>
-                <p className="text-2xl font-bold text-green-700">GH₵{(n(usdAmount) * ghsPerUsd).toFixed(2)}</p>
-                <p className="text-xs text-green-600">${n(usdAmount).toFixed(2)} USD at {ghsPerUsd} rate</p>
-              </div>
-            )}
-            <p className="text-xs text-gray-400 text-center">Rate set by Pakkmaxx. May differ from bank rates.</p>
-          </div>
-        )}
       </div>
     </div>
   );
