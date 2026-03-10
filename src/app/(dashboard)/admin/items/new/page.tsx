@@ -22,17 +22,54 @@ function getCbm(l: number, w: number, h: number, unit: "cm" | "inches"): number 
   return l * w * h * 0.000016387;
 }
 
-function CbmDisplay({ length, width, height, unit, quantity }: { length: number; width: number; height: number; unit: "cm" | "inches"; quantity: number }) {
+function CbmDisplay({ length, width, height, unit, quantity, weight, shippingType }: { length: number; width: number; height: number; unit: "cm" | "inches"; quantity: number; weight: number; shippingType: "air" | "sea" }) {
+  let rates = { shippingRatePerCbm: 0, usdToGhs: 0 };
+  let pkgRates: { standard?: { sea?: number; air?: number } } = {};
+  try {
+    rates = JSON.parse(localStorage.getItem(CBM_LS_KEY) ?? "{}");
+    pkgRates = JSON.parse(localStorage.getItem("pakk_package_rates") ?? "{}");
+  } catch {}
+
+  const usdToGhs = rates.usdToGhs || 0;
+  const stdRates = pkgRates.standard ?? { sea: 0, air: 0 };
+
+  // Air: weight-based
+  if (shippingType === "air") {
+    if (!weight || !usdToGhs) return null;
+    const airRate = stdRates.air || 0;
+    if (!airRate) return (
+      <p className="text-xs text-brand-500">Set air rate in Settings → Package Rates to see estimate.</p>
+    );
+    const qty = Math.max(1, quantity || 1);
+    const costUsd = weight * qty * airRate;
+    const costGhs = costUsd * usdToGhs;
+    console.log("[CbmDisplay air] weight:", weight, "qty:", qty, "airRate:", airRate, "usdToGhs:", usdToGhs, "costGhs:", costGhs);
+    return (
+      <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 text-sm space-y-1">
+        <div className="flex justify-between">
+          <span className="text-brand-700 font-medium">Weight</span>
+          <span className="font-bold text-brand-900">{(weight * qty).toFixed(2)} kg</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-brand-600">Rate (Standard)</span>
+          <span className="font-semibold">${airRate}/kg</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-brand-600">Est. cost (GHS)</span>
+          <span className="font-bold text-brand-900">GH₵ {costGhs.toFixed(2)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Sea: CBM-based
   const cbm = getCbm(length, width, height, unit) * Math.max(1, quantity || 1);
   if (!cbm) return null;
 
-  let rates = { shippingRatePerCbm: 0, usdToGhs: 0 };
-  try {
-    rates = JSON.parse(localStorage.getItem(CBM_LS_KEY) ?? "{}");
-  } catch {}
-
-  const costUsd = rates.shippingRatePerCbm ? cbm * rates.shippingRatePerCbm : null;
-  const costGhs = costUsd && rates.usdToGhs ? costUsd * rates.usdToGhs : null;
+  const seaRate = stdRates.sea || rates.shippingRatePerCbm || 0;
+  const costUsd = seaRate ? cbm * seaRate : null;
+  const costGhs = costUsd && usdToGhs ? costUsd * usdToGhs : null;
+  console.log("[CbmDisplay sea] cbm:", cbm, "seaRate:", seaRate, "usdToGhs:", usdToGhs, "costGhs:", costGhs);
 
   return (
     <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 text-sm space-y-1">
@@ -42,8 +79,8 @@ function CbmDisplay({ length, width, height, unit, quantity }: { length: number;
       </div>
       {costUsd != null && (
         <div className="flex justify-between text-xs">
-          <span className="text-brand-600">Shipping cost (USD)</span>
-          <span className="font-semibold">${costUsd.toFixed(2)}</span>
+          <span className="text-brand-600">Rate (Standard)</span>
+          <span className="font-semibold">${seaRate}/m³</span>
         </div>
       )}
       {costGhs != null && (
@@ -52,7 +89,7 @@ function CbmDisplay({ length, width, height, unit, quantity }: { length: number;
           <span className="font-bold text-brand-900">GH₵ {costGhs.toFixed(2)}</span>
         </div>
       )}
-      {!rates.shippingRatePerCbm && (
+      {!seaRate && (
         <p className="text-xs text-brand-500">Set exchange rates in settings to see cost estimate.</p>
       )}
     </div>
@@ -399,6 +436,8 @@ export default function NewItemPage() {
                   height={parseFloat(form.height) || 0}
                   unit={form.dimensionUnit}
                   quantity={parseInt(form.quantity) || 1}
+                  weight={parseFloat(form.weight) || 0}
+                  shippingType={form.shippingType}
                 />
               </CardContent>
             </Card>

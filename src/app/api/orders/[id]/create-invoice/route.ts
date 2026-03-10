@@ -14,6 +14,9 @@ export async function POST(
 
   try {
     const { id } = await params;
+    const body = await request.json().catch(() => ({})) as { itemPriceMap?: Record<string, number> };
+    const { itemPriceMap } = body;
+    console.log("[create-invoice] received itemPriceMap:", JSON.stringify(itemPriceMap));
     const order = await ordersApi.getById(id);
 
     if (order.keepupSaleId) {
@@ -55,7 +58,6 @@ export async function POST(
 
     const validItems = items.filter(Boolean);
 
-    // Per-item line items, split proportionally by CBM (or equally if no CBM data)
     function getItemCbm(item: NonNullable<typeof validItems[0]>): number {
       if (!item!.length || !item!.width || !item!.height) return 0;
       const factor = item!.dimensionUnit === "inches" ? 16.387064 : 1;
@@ -73,20 +75,41 @@ export async function POST(
         item_type: "product",
       }];
     } else {
-      const cbms = validItems.map((item) => getItemCbm(item!));
-      const totalCbm = cbms.reduce((s, c) => s + c, 0);
-      const useCbm = totalCbm > 0;
+      // Use client-provided per-item prices if available (from calcItemPrice with customer tier rates)
+      const hasClientPrices = itemPriceMap && validItems.every((item) => itemPriceMap[item!.id] != null);
+      console.log("[create-invoice] hasClientPrices:", hasClientPrices);
 
-      const prices: number[] = [];
-      let runningSum = 0;
-      for (let i = 0; i < validItems.length; i++) {
-        if (i < validItems.length - 1) {
-          const proportion = useCbm ? cbms[i] / totalCbm : 1 / validItems.length;
-          const p = Math.round(order.invoiceAmount * proportion * 100) / 100;
-          prices.push(p);
-          runningSum += p;
-        } else {
-          prices.push(Math.round((order.invoiceAmount - runningSum) * 100) / 100);
+      let prices: number[];
+      if (hasClientPrices) {
+        // Use client prices but adjust last item so sum matches invoice total (avoids rounding drift)
+        const rawPrices = validItems.map((item) => itemPriceMap![item!.id]);
+        const rawSum = rawPrices.reduce((s, p) => s + p, 0);
+        console.log("[create-invoice] client prices:", rawPrices, "sum:", rawSum, "invoiceAmount:", order.invoiceAmount);
+        // Scale prices proportionally to match invoice amount
+        prices = rawPrices.map((p, i) =>
+          i < rawPrices.length - 1
+            ? Math.round(order.invoiceAmount * (p / rawSum) * 100) / 100
+            : 0
+        );
+        let running = prices.reduce((s, p) => s + p, 0);
+        prices[prices.length - 1] = Math.round((order.invoiceAmount - running) * 100) / 100;
+      } else {
+        // Fallback: split proportionally by CBM (or equally if no CBM)
+        console.log("[create-invoice] falling back to CBM-proportional split");
+        const cbms = validItems.map((item) => getItemCbm(item!));
+        const totalCbm = cbms.reduce((s, c) => s + c, 0);
+        const useCbm = totalCbm > 0;
+        prices = [];
+        let runningSum = 0;
+        for (let i = 0; i < validItems.length; i++) {
+          if (i < validItems.length - 1) {
+            const proportion = useCbm ? cbms[i] / totalCbm : 1 / validItems.length;
+            const p = Math.round(order.invoiceAmount * proportion * 100) / 100;
+            prices.push(p);
+            runningSum += p;
+          } else {
+            prices.push(Math.round((order.invoiceAmount - runningSum) * 100) / 100);
+          }
         }
       }
 

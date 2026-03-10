@@ -51,6 +51,7 @@ export default function AdminOrderDetailPage() {
 
   // Extra info
   const [customerPhone, setCustomerPhone] = useState<string>("");
+  const [customerPackage, setCustomerPackage] = useState<string>("standard");
 
   // Record Payment modal
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -62,10 +63,12 @@ export default function AdminOrderDetailPage() {
       const res = await axios.get(`/api/orders/${id}`);
       const o: OrderDetail = res.data.data;
       setOrder(o);
-      // Fetch customer phone
+      // Fetch customer phone + package tier
       if (o.customerId) {
         axios.get(`/api/customers/${o.customerId}`).then((cRes) => {
-          setCustomerPhone(cRes.data.data?.phone ?? "");
+          const c = cRes.data.data;
+          setCustomerPhone(c?.phone ?? "");
+          setCustomerPackage(c?.package ?? "standard");
         }).catch(() => {});
       }
     } catch {
@@ -81,7 +84,31 @@ export default function AdminOrderDetailPage() {
     if (!order) return;
     setCreatingInvoice(true);
     try {
-      await axios.post(`/api/orders/${id}/create-invoice`);
+      // Calculate per-item prices using natural pricing (air: weight, sea: CBM)
+      const priceMap: Record<string, number> = {};
+      try {
+        const rates = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
+        const pkgRates = JSON.parse(localStorage.getItem("pakk_package_rates") ?? "{}");
+        const usdToGhs: number = rates.usdToGhs ?? 12.5;
+        const tier = customerPackage as "standard" | "discounted" | "premium";
+        const tierRates = pkgRates[tier] ?? { sea: 350, air: 8 };
+        console.log("[handleCreateInvoice] tier:", tier, "tierRates:", tierRates, "usdToGhs:", usdToGhs);
+        (order.items ?? []).forEach((item) => {
+          if (item.shippingType === "air" && item.weight) {
+            const ghs = item.weight * (item.quantity ?? 1) * tierRates.air * usdToGhs;
+            console.log(`[handleCreateInvoice] ${item.itemRef} AIR → GHS ${ghs.toFixed(2)}`);
+            priceMap[item.id] = Math.round(ghs * 100) / 100;
+          } else if (item.length && item.width && item.height) {
+            const ghs = getCbm(item) * tierRates.sea * usdToGhs;
+            console.log(`[handleCreateInvoice] ${item.itemRef} SEA → GHS ${ghs.toFixed(2)}`);
+            priceMap[item.id] = Math.round(ghs * 100) / 100;
+          }
+        });
+      } catch (e) { console.error("[handleCreateInvoice] rate calc error:", e); }
+
+      const itemPriceMap = Object.keys(priceMap).length > 0 ? priceMap : undefined;
+      console.log("[handleCreateInvoice] final itemPriceMap:", itemPriceMap);
+      await axios.post(`/api/orders/${id}/create-invoice`, { itemPriceMap });
       success("Invoice created in Keepup");
       load();
     } catch (err: unknown) {
@@ -164,26 +191,35 @@ export default function AdminOrderDetailPage() {
 
   const totalCbm = order.items?.reduce((sum, item) => sum + getCbm(item), 0) ?? 0;
 
-  // Per-item prices split proportionally by CBM (or equally if no CBM)
+  // Per-item prices using natural pricing (air: weight-based, sea: CBM-based)
   const itemPrices = (() => {
     const items = order.items ?? [];
     if (items.length === 0) return new Map<string, number>();
-    const cbms = items.map((item) => getCbm(item));
-    const total = cbms.reduce((s, c) => s + c, 0);
-    const useCbm = total > 0;
-    const prices = new Map<string, number>();
-    let running = 0;
-    items.forEach((item, i) => {
-      if (i < items.length - 1) {
-        const proportion = useCbm ? cbms[i] / total : 1 / items.length;
-        const p = Math.round(order.invoiceAmount * proportion * 100) / 100;
-        prices.set(item.id, p);
-        running += p;
-      } else {
-        prices.set(item.id, Math.round((order.invoiceAmount - running) * 100) / 100);
-      }
-    });
-    return prices;
+    try {
+      const rates = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
+      const pkgRates = JSON.parse(localStorage.getItem("pakk_package_rates") ?? "{}");
+      const usdToGhs: number = rates.usdToGhs ?? 12.5;
+      const tier = customerPackage as "standard" | "discounted" | "premium";
+      const tierRates = pkgRates[tier] ?? { sea: 350, air: 8 };
+      console.log("[itemPrices] tier:", tier, "tierRates:", tierRates, "usdToGhs:", usdToGhs);
+      const prices = new Map<string, number>();
+      items.forEach((item) => {
+        if (item.shippingType === "air" && item.weight) {
+          const ghs = item.weight * (item.quantity ?? 1) * tierRates.air * usdToGhs;
+          console.log(`[itemPrices] ${item.itemRef} AIR → ${item.weight}kg × ${tierRates.air} × ${usdToGhs} = GHS ${ghs.toFixed(2)}`);
+          prices.set(item.id, Math.round(ghs * 100) / 100);
+        } else if (item.length && item.width && item.height) {
+          const cbm = getCbm(item);
+          const ghs = cbm * tierRates.sea * usdToGhs;
+          console.log(`[itemPrices] ${item.itemRef} SEA → cbm=${cbm.toFixed(6)} × ${tierRates.sea} × ${usdToGhs} = GHS ${ghs.toFixed(2)}`);
+          prices.set(item.id, Math.round(ghs * 100) / 100);
+        }
+      });
+      return prices;
+    } catch (e) {
+      console.error("[itemPrices] error reading rates:", e);
+      return new Map<string, number>();
+    }
   })();
 
   return (

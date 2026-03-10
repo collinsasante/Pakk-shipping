@@ -73,19 +73,25 @@ function calcItemPrice(item: Item, pkg?: string): string | null {
     const usdToGhs: number = rates.usdToGhs ?? 12.5;
     const tier = (pkg ?? "standard") as "standard" | "discounted" | "premium";
     const tierRates = pkgRates[tier] ?? { sea: 350, air: 8 };
+    console.log(`[calcItemPrice] ${item.itemRef} | tier=${tier} | shippingType=${item.shippingType} | weight=${item.weight} | dims=${item.length}x${item.width}x${item.height}${item.dimensionUnit} | usdToGhs=${usdToGhs} | tierRates=`, tierRates);
 
     if (item.shippingType === "air" && item.weight) {
       const usd = item.weight * (item.quantity ?? 1) * tierRates.air;
-      return `GHS ${(usd * usdToGhs).toFixed(2)}`;
+      const ghs = usd * usdToGhs;
+      console.log(`[calcItemPrice] ${item.itemRef} AIR → weight=${item.weight} × airRate=${tierRates.air} × usdToGhs=${usdToGhs} = GHS ${ghs.toFixed(2)}`);
+      return `GHS ${ghs.toFixed(2)}`;
     }
     if (item.length && item.width && item.height) {
       const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
       const cbm = (item.length * item.width * item.height * factor * (item.quantity ?? 1)) / 1_000_000;
       const usd = cbm * tierRates.sea;
-      return `GHS ${(usd * usdToGhs).toFixed(2)}`;
+      const ghs = usd * usdToGhs;
+      console.log(`[calcItemPrice] ${item.itemRef} SEA → cbm=${cbm.toFixed(6)} × seaRate=${tierRates.sea} × usdToGhs=${usdToGhs} = GHS ${ghs.toFixed(2)}`);
+      return `GHS ${ghs.toFixed(2)}`;
     }
+    console.log(`[calcItemPrice] ${item.itemRef} → no price (no matching dims or weight)`);
     return null;
-  } catch { return null; }
+  } catch (e) { console.error("[calcItemPrice] error:", e); return null; }
 }
 
 export default function CustomerItemsPage() {
