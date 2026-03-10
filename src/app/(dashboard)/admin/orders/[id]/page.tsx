@@ -25,6 +25,7 @@ import { useToast } from "@/components/ui/toast";
 
 interface OrderDetail extends Order {
   items?: Item[];
+  keepupTotalAmount?: number | null;
   keepupAmountPaid?: number | null;
   keepupBalanceDue?: number | null;
 }
@@ -315,11 +316,17 @@ export default function AdminOrderDetailPage() {
                 {order.keepupSaleId && (
                   <div className="border-t border-gray-50 pt-3 space-y-1.5">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Payment Info</p>
+                    {order.keepupTotalAmount != null && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">Invoice Total</span>
+                        <span className="font-semibold text-gray-800">{formatCurrency(order.keepupTotalAmount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-gray-400">Amount Paid</span>
                       <span className="font-semibold text-green-700">{formatCurrency(order.keepupAmountPaid ?? 0)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-xs">
+                    <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1.5 mt-1">
                       <span className="text-gray-500 font-medium">Balance Due</span>
                       <span className={`font-bold ${(order.keepupBalanceDue ?? 0) <= 0 ? "text-green-700" : "text-orange-600"}`}>
                         {formatCurrency(Math.max(0, order.keepupBalanceDue ?? (order.invoiceAmount - (order.keepupAmountPaid ?? 0))))}

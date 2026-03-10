@@ -91,11 +91,10 @@ export function CustomerSidebar() {
         <p className="text-xs text-brand-600 font-medium mb-1">Your Shipping Mark</p>
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            {warehouseAddress && (
-              <p className="text-xs text-brand-600 mt-0.5 truncate">{warehouseAddress}</p>
-            )}
-            <code className="text-xs font-mono font-bold text-brand-800 truncate">
-              {shippingMark || "Loading..."}
+            <code className="text-xs font-mono font-bold text-brand-800 break-all leading-relaxed">
+              {warehouseAddress
+                ? `${warehouseAddress} (${shippingMark})`
+                : (shippingMark || "Loading...")}
             </code>
           </div>
           {shippingMark && (

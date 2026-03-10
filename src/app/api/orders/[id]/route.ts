@@ -56,11 +56,13 @@ export async function GET(
     }
 
     // Fetch Keepup payment status (non-fatal)
+    let keepupTotalAmount: number | null = null;
     let keepupAmountPaid: number | null = null;
     let keepupBalanceDue: number | null = null;
     if (order.keepupSaleId) {
       try {
         const ks = await getKeepupSale(order.keepupSaleId);
+        keepupTotalAmount = ks.totalAmount;
         keepupAmountPaid = ks.amountPaid;
         keepupBalanceDue = ks.balanceDue;
       } catch {
@@ -84,7 +86,7 @@ export async function GET(
 
     return Response.json({
       success: true,
-      data: { ...order, items, keepupAmountPaid, keepupBalanceDue },
+      data: { ...order, items, keepupTotalAmount, keepupAmountPaid, keepupBalanceDue },
     });
   } catch (err) {
     console.error("[GET /orders/[id]] Error:", err);
