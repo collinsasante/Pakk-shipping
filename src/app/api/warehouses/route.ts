@@ -8,9 +8,11 @@ export async function GET(request: NextRequest) {
   // Customers can also access this to see warehouse shipping addresses
   const authResult = await requireAuth(request, ["super_admin", "warehouse_staff", "customer"]);
   if (authResult instanceof Response) return authResult;
+  const { user } = authResult;
 
   try {
-    const warehouses = await warehousesApi.listActive();
+    const isAdmin = user.role === "super_admin" || user.role === "warehouse_staff";
+    const warehouses = isAdmin ? await warehousesApi.list() : await warehousesApi.listActive();
     return Response.json({ success: true, data: warehouses });
   } catch (err) {
     console.error("[GET /warehouses]", err);
