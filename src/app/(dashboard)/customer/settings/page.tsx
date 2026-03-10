@@ -139,13 +139,21 @@ export default function CustomerSettingsPage() {
                   </div>
                 </div>
                 {preferredWarehouse && (
+                  <div className="bg-white/60 rounded-lg px-3 py-2 border border-brand-100 space-y-1">
+                    <p className="text-xs text-brand-500 font-medium">Write this on your package label:</p>
+                    <code className="text-xs font-mono text-brand-900 break-all block font-bold">
+                      {preferredWarehouse.address} ({appUser.shippingMark})
+                    </code>
+                  </div>
+                )}
+                {preferredWarehouse && (
                   <div className="flex items-start gap-2 text-xs text-brand-700 border-t border-brand-100 pt-2">
                     <Warehouse className="h-3.5 w-3.5 mt-0.5 shrink-0 text-brand-500" />
-                    <span>{preferredWarehouse.address}{preferredWarehouse.phone ? ` · ${preferredWarehouse.phone}` : ""}</span>
+                    <span>{preferredWarehouse.name} · {preferredWarehouse.address}{preferredWarehouse.phone ? ` · ${preferredWarehouse.phone}` : ""}</span>
                   </div>
                 )}
                 <p className="text-xs text-brand-600">
-                  Write this on every package you send. Change your warehouse in <a href="/customer/items" className="underline">My Items</a>.
+                  Write this on every package you send. Change your warehouse in <a href="/customer/addresses" className="underline">Our Addresses</a>.
                 </p>
               </div>
             )}

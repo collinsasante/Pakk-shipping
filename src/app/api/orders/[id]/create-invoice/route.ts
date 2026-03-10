@@ -22,15 +22,28 @@ export async function POST(
       );
     }
 
-    console.log("[create-invoice] order:", order.id, "invoiceAmount:", order.invoiceAmount, "itemIds:", order.itemIds);
+    console.log("[create-invoice] ===== DATA CONSISTENCY CHECK =====");
+    console.log("[create-invoice] order id:", order.id);
+    console.log("[create-invoice] order ref:", order.orderRef);
+    console.log("[create-invoice] invoice amount (app):", order.invoiceAmount, "GHS");
+    console.log("[create-invoice] invoice date (app):", order.invoiceDate);
+    console.log("[create-invoice] customer id:", order.customerId);
+    console.log("[create-invoice] item ids:", order.itemIds);
+    console.log("[create-invoice] status:", order.status);
 
     const [customer, items] = await Promise.all([
       customersApi.getById(order.customerId).catch(() => null),
       Promise.all(order.itemIds.map((itemId) => itemsApi.getById(itemId).catch(() => null))),
     ]);
 
-    console.log("[create-invoice] customer:", customer?.name, customer?.email, customer?.phone);
+    console.log("[create-invoice] customer name (app):", customer?.name);
+    console.log("[create-invoice] customer email (app):", customer?.email);
+    console.log("[create-invoice] customer phone (app):", customer?.phone);
     console.log("[create-invoice] items fetched:", items.length, "valid:", items.filter(Boolean).length);
+    items.forEach((item, i) => {
+      if (item) console.log(`[create-invoice]   item[${i}]: ref=${item.itemRef} desc="${item.description}" weight=${item.weight}kg dims=${item.length}x${item.width}x${item.height}${item.dimensionUnit}`);
+      else console.log(`[create-invoice]   item[${i}]: FETCH FAILED`);
+    });
 
     const validItems = items.filter(Boolean);
     const pricePerItem = validItems.length > 0

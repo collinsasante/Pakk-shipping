@@ -111,7 +111,13 @@ export async function POST(request: NextRequest) {
           })
         : [{ item_name: `Freight - ${order.orderRef}`, quantity: 1, price: Math.round(parsed.data.invoiceAmount * 100) / 100, item_type: "product" }];
 
-      console.log("[POST /orders] Keepup payload — customer:", customer?.name, "items:", lineItems.length, "validItems:", validItems.length);
+      console.log("[POST /orders] ===== DATA CONSISTENCY CHECK =====");
+      console.log("[POST /orders] customer name:", customer?.name, "email:", customer?.email, "phone:", customer?.phone);
+      console.log("[POST /orders] invoiceAmount (app):", parsed.data.invoiceAmount, "GHS");
+      console.log("[POST /orders] invoiceDate:", parsed.data.invoiceDate);
+      console.log("[POST /orders] validItems:", validItems.length, "pricePerItem:", pricePerItem);
+      lineItems.forEach((li, i) => console.log(`[POST /orders]   lineItem[${i}]: "${li.item_name}" x${li.quantity} @ ${li.price}`));
+      console.log("[POST /orders] ================================");
 
       const keepupResult = await createKeepupSale({
         customerName: customer?.name,
