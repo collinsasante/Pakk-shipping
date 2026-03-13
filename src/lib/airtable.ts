@@ -71,7 +71,7 @@ function getBase() {
         "AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set in environment"
       );
     }
-    Airtable.configure({ apiKey });
+    Airtable.configure({ apiKey, requestTimeout: 25000 });
     _base = new Airtable().base(baseId);
   }
   return _base;

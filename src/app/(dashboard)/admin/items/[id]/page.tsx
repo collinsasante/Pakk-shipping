@@ -118,39 +118,49 @@ export default function AdminItemDetailPage() {
   useEffect(() => {
     if (!item) return;
     try {
+      const BUILTIN_TIERS = new Set(["standard", "discounted", "premium", "special"]);
       const pkgRates = JSON.parse(localStorage.getItem("pakk_package_rates") ?? "{}") as Record<string, { sea?: number; air?: number }>;
       const specialRatesRaw = JSON.parse(localStorage.getItem("pakk_special_rates") ?? "[]") as { id: string; name: string; sea: number; air: number }[];
-      // Special rates take priority if item customer matches a special rate by name
-      const tierRates = pkgRates[customerPackage] ?? pkgRates.standard ?? { sea: 0, air: 0 };
       const qty = item.quantity ?? 1;
       let costGhs = 0;
       let rateStr = "";
-      if (item.shippingType === "air" && item.weight) {
-        const rate = tierRates.air ?? 0;
-        costGhs = item.weight * qty * rate;
-        rateStr = `GH₵${rate}/kg`;
-      } else if (item.length && item.width && item.height) {
-        const factor = item.dimensionUnit === "inches" ? 0.000016387 : 0.000001;
-        const cbm = item.length * item.width * item.height * factor * qty;
-        const rate = tierRates.sea ?? 0;
-        costGhs = cbm * rate;
-        rateStr = `GH₵${rate}/m³`;
+
+      const isBuiltin = BUILTIN_TIERS.has(customerPackage.toLowerCase());
+      const specialMatch = specialRatesRaw.find((r) => r.name.toLowerCase() === customerPackage.toLowerCase());
+
+      if (!isBuiltin && !specialMatch) {
+        // Named special rate package but rate not found in localStorage — don't show misleading estimate
+        setShippingEstimate(null);
+        return;
       }
-      // Check if there's a matching special named rate
-      if (specialRatesRaw.length > 0) {
-        const specialMatch = specialRatesRaw.find((r) => r.name.toLowerCase() === customerPackage.toLowerCase());
-        if (specialMatch) {
-          if (item.shippingType === "air" && item.weight) {
-            costGhs = item.weight * qty * specialMatch.air;
-            rateStr = `GH₵${specialMatch.air}/kg (${specialMatch.name})`;
-          } else if (item.length && item.width && item.height) {
-            const factor = item.dimensionUnit === "inches" ? 0.000016387 : 0.000001;
-            const cbm = item.length * item.width * item.height * factor * qty;
-            costGhs = cbm * specialMatch.sea;
-            rateStr = `GH₵${specialMatch.sea}/m³ (${specialMatch.name})`;
-          }
+
+      if (specialMatch) {
+        // Use matched special rate directly
+        if (item.shippingType === "air" && item.weight) {
+          costGhs = item.weight * qty * specialMatch.air;
+          rateStr = `GH₵${specialMatch.air}/kg (${specialMatch.name})`;
+        } else if (item.length && item.width && item.height) {
+          const factor = item.dimensionUnit === "inches" ? 0.000016387 : 0.000001;
+          const cbm = item.length * item.width * item.height * factor * qty;
+          costGhs = cbm * specialMatch.sea;
+          rateStr = `GH₵${specialMatch.sea}/m³ (${specialMatch.name})`;
+        }
+      } else {
+        // Builtin tier — look up from package rates
+        const tierRates = pkgRates[customerPackage] ?? pkgRates.standard ?? { sea: 0, air: 0 };
+        if (item.shippingType === "air" && item.weight) {
+          const rate = tierRates.air ?? 0;
+          costGhs = item.weight * qty * rate;
+          rateStr = `GH₵${rate}/kg`;
+        } else if (item.length && item.width && item.height) {
+          const factor = item.dimensionUnit === "inches" ? 0.000016387 : 0.000001;
+          const cbm = item.length * item.width * item.height * factor * qty;
+          const rate = tierRates.sea ?? 0;
+          costGhs = cbm * rate;
+          rateStr = `GH₵${rate}/m³`;
         }
       }
+
       if (costGhs > 0) {
         setShippingEstimate({ amount: costGhs.toFixed(2), rateStr, tier: customerPackage });
       } else {
