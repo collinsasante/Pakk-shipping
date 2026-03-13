@@ -274,7 +274,7 @@ export default function AdminSettingsPage() {
                 <p className="text-sm text-gray-500">
                   Set custom sea and air rates per customer package tier.
                 </p>
-                {(["standard", "discounted", "premium"] as (keyof PackageRates)[]).map((pkg) => (
+                {(["standard", "discounted", "premium", "special"] as (keyof PackageRates)[]).map((pkg) => (
                   <div key={pkg} className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${PACKAGE_COLORS[pkg]}`}>{PACKAGE_LABELS[pkg]}</span>

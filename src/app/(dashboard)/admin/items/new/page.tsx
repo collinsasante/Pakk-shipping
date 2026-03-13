@@ -557,59 +557,68 @@ export default function NewItemPage() {
               </CardContent>
             </Card>
 
-            {specialRates.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-brand-600" />
-                    Special Rate (optional)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Search rates..."
-                    value={specialSearch}
-                    onChange={(e) => setSpecialSearch(e.target.value)}
-                    className="h-9 w-full px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {specialRates
-                      .filter((r) => r.name.toLowerCase().includes(specialSearch.toLowerCase()))
-                      .map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedSpecialRateId(selectedSpecialRateId === r.id ? "" : r.id);
-                            setIsSpecialItem(selectedSpecialRateId !== r.id);
-                          }}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition-all ${
-                            selectedSpecialRateId === r.id
-                              ? "border-brand-300 bg-brand-50"
-                              : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
-                          }`}
-                        >
-                          <span className="text-sm font-medium text-gray-900">{r.name}</span>
-                          <span className="text-xs text-gray-500">Sea: ${r.sea}/CBM · Air: ${r.air}/kg</span>
-                        </button>
-                      ))}
-                    {specialRates.filter((r) => r.name.toLowerCase().includes(specialSearch.toLowerCase())).length === 0 && (
-                      <p className="text-sm text-gray-400 text-center py-3">No rates match your search</p>
-                    )}
-                  </div>
-                  {selectedSpecialRateId && (
-                    <button
-                      type="button"
-                      onClick={() => { setSelectedSpecialRateId(""); setIsSpecialItem(false); }}
-                      className="text-xs text-red-500 hover:underline"
-                    >
-                      Clear selection
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-brand-600" />
+                  Special Rate (optional)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {specialRates.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-3">
+                    No special rates configured. Add them in{" "}
+                    <button type="button" className="text-brand-600 hover:underline" onClick={() => window.location.href = "/admin/settings"}>
+                      Settings → Special Rates
                     </button>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                  </p>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Search rates..."
+                      value={specialSearch}
+                      onChange={(e) => setSpecialSearch(e.target.value)}
+                      className="h-9 w-full px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {specialRates
+                        .filter((r) => r.name.toLowerCase().includes(specialSearch.toLowerCase()))
+                        .map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSpecialRateId(selectedSpecialRateId === r.id ? "" : r.id);
+                              setIsSpecialItem(selectedSpecialRateId !== r.id);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition-all ${
+                              selectedSpecialRateId === r.id
+                                ? "border-brand-300 bg-brand-50"
+                                : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
+                            }`}
+                          >
+                            <span className="text-sm font-medium text-gray-900">{r.name}</span>
+                            <span className="text-xs text-gray-500">Sea: ${r.sea}/CBM · Air: ${r.air}/kg</span>
+                          </button>
+                        ))}
+                      {specialRates.filter((r) => r.name.toLowerCase().includes(specialSearch.toLowerCase())).length === 0 && (
+                        <p className="text-sm text-gray-400 text-center py-3">No rates match your search</p>
+                      )}
+                    </div>
+                    {selectedSpecialRateId && (
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedSpecialRateId(""); setIsSpecialItem(false); }}
+                        className="text-xs text-red-500 hover:underline"
+                      >
+                        Clear selection
+                      </button>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
             <Card>
               <CardContent className="pt-5">
