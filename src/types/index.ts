@@ -142,6 +142,7 @@ export interface UpdateItemInput {
   length?: number;
   width?: number;
   height?: number;
+  dimensionUnit?: "cm" | "inches";
   description?: string;
   trackingNumber?: string;
   notes?: string;
@@ -150,6 +151,11 @@ export interface UpdateItemInput {
   customerId?: string;
   isMissing?: boolean;
   photoUrls?: string[];
+  estPrice?: number;
+  estShippingPrice?: number;
+  quantity?: number;
+  shippingType?: "air" | "sea";
+  status?: string;
 }
 
 // ============================================================

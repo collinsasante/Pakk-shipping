@@ -66,10 +66,6 @@ export default function AdminItemDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editModal, setEditModal] = useState(false);
-  const [reassignSearch, setReassignSearch] = useState("");
-  const [reassignResults, setReassignResults] = useState<{ id: string; name: string; shippingMark: string }[]>([]);
-  const [reassignLoading, setReassignLoading] = useState(false);
-  const [reassigning, setReassigning] = useState(false);
   const [editForm, setEditForm] = useState({
     description: "",
     weight: "",
@@ -159,39 +155,6 @@ export default function AdminItemDetailPage() {
       error("Failed to update item");
     } finally {
       setSavingEdit(false);
-    }
-  };
-
-  const handleReassignSearch = (q: string) => {
-    setReassignSearch(q);
-    if (!q.trim()) setReassignResults([]);
-  };
-
-  useEffect(() => {
-    if (!reassignSearch.trim()) return;
-    const t = setTimeout(async () => {
-      setReassignLoading(true);
-      try {
-        const res = await axios.get("/api/customers", { params: { search: reassignSearch } });
-        setReassignResults((res.data.data ?? []).slice(0, 8).map((c: { id: string; name: string; shippingMark: string }) => ({ id: c.id, name: c.name, shippingMark: c.shippingMark })));
-      } catch { setReassignResults([]); }
-      finally { setReassignLoading(false); }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [reassignSearch]);
-
-  const handleReassign = async (customerId: string, customerName: string) => {
-    setReassigning(true);
-    try {
-      await axios.patch(`/api/items/${id}`, { customerId });
-      success("Customer reassigned", `Item assigned to ${customerName}`);
-      setReassignSearch("");
-      setReassignResults([]);
-      load();
-    } catch {
-      error("Failed to reassign customer");
-    } finally {
-      setReassigning(false);
     }
   };
 
@@ -386,36 +349,6 @@ export default function AdminItemDetailPage() {
                         </code>
                       )}
                     </div>
-                    {/* Reassign customer search */}
-                    <div className="mt-2">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Search to reassign customer..."
-                          value={reassignSearch}
-                          onChange={(e) => handleReassignSearch(e.target.value)}
-                          className="h-8 w-full px-2.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-                        />
-                        {reassignLoading && (
-                          <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-gray-400" />
-                        )}
-                      </div>
-                      {reassignResults.length > 0 && (
-                        <div className="mt-1 border border-gray-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto bg-white shadow-sm">
-                          {reassignResults.map((c) => (
-                            <button
-                              key={c.id}
-                              onClick={() => handleReassign(c.id, c.name)}
-                              disabled={reassigning}
-                              className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-brand-50 transition-colors text-sm"
-                            >
-                              <span className="font-medium text-gray-900 truncate">{c.name}</span>
-                              <code className="text-xs text-gray-500 font-mono ml-2 shrink-0">{c.shippingMark}</code>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
                 <InfoRow icon={Scale} label="Weight" value={item.weight ? `${item.weight} kg` : null} />
@@ -430,32 +363,11 @@ export default function AdminItemDetailPage() {
                   const cbm = (item.length * item.width * item.height * factor * (item.quantity ?? 1)) / 1_000_000;
                   return <InfoRow icon={Package} label="CBM" value={`${cbm.toFixed(4)} m³`} />;
                 })() : null}
-                {(() => {
-                  try {
-                    const rates = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
-                    const pkgRates = JSON.parse(localStorage.getItem("pakk_package_rates") ?? "{}");
-                    const usdToGhs = rates.usdToGhs ?? 12.5;
-                    // Use the customer's package tier if available
-                    const tier = (item as Item & { customerPackage?: string }).customerPackage as "standard" | "discounted" | "premium" | "special" ?? "standard";
-                    const tierRates = pkgRates[tier] ?? { sea: 350, air: 8 };
-                    if (item.shippingType === "air" && item.weight) {
-                      const usd = item.weight * (item.quantity ?? 1) * tierRates.air;
-                      return <InfoRow icon={DollarSign} label="Est. Price" value={`GHS ${(usd * usdToGhs).toFixed(2)}`} />;
-                    }
-                    if (item.length && item.width && item.height) {
-                      const factor = item.dimensionUnit === "inches" ? 16.387064 : 1;
-                      const cbm = (item.length * item.width * item.height * factor * (item.quantity ?? 1)) / 1_000_000;
-                      const usd = cbm * tierRates.sea;
-                      return <InfoRow icon={DollarSign} label="Est. Price" value={`GHS ${(usd * usdToGhs).toFixed(2)}`} />;
-                    }
-                  } catch { /* ignore */ }
-                  return null;
-                })()}
                 {item.estPrice != null && (
                   <InfoRow icon={DollarSign} label="Est. Item Price" value={`GH₵ ${item.estPrice.toFixed(2)}`} />
                 )}
                 {item.estShippingPrice != null && (
-                  <InfoRow icon={DollarSign} label="Est. Shipping Price" value={`GH₵ ${item.estShippingPrice.toFixed(2)}`} />
+                  <InfoRow icon={DollarSign} label="Est. Shipping Cost" value={`GH₵ ${item.estShippingPrice.toFixed(2)}`} />
                 )}
                 {item.isSpecialItem && (
                   <InfoRow icon={Package} label="Special Item" value="Yes" />

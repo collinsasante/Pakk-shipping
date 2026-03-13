@@ -66,7 +66,15 @@ export async function GET(
         keepupAmountPaid = ks.amountPaid;
         keepupBalanceDue = ks.balanceDue;
       } catch {
-        // non-fatal
+        // Keepup API unavailable — derive sensible defaults from order status so summary still renders
+        keepupTotalAmount = order.invoiceAmount;
+        if (order.status === "Paid") {
+          keepupAmountPaid = order.invoiceAmount;
+          keepupBalanceDue = 0;
+        } else {
+          keepupAmountPaid = 0;
+          keepupBalanceDue = order.invoiceAmount;
+        }
       }
       // Fallback: if Keepup returns 0 but order is already marked Paid/Partial, derive from status
       if (order.status === "Paid" && (keepupAmountPaid ?? 0) === 0) {

@@ -613,6 +613,11 @@ export const itemsApi = {
     if (input.containerId !== undefined) fields["Container"] = [input.containerId];
     if (input.customerId !== undefined) fields["Customer"] = [input.customerId];
     if (input.isMissing !== undefined) fields["IsMissing"] = input.isMissing;
+    if (input.estPrice !== undefined) fields["EstPrice"] = input.estPrice;
+    if (input.estShippingPrice !== undefined) fields["EstShippingPrice"] = input.estShippingPrice;
+    if (input.quantity !== undefined) fields["Quantity"] = input.quantity;
+    if (input.shippingType !== undefined) fields["FreightType"] = input.shippingType;
+    if (input.dimensionUnit !== undefined) fields["DimensionUnit"] = input.dimensionUnit;
     if (input.photoUrls !== undefined) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fields["Photos"] = input.photoUrls.map((url) => ({ url })) as any;
