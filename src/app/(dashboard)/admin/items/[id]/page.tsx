@@ -79,7 +79,8 @@ export default function AdminItemDetailPage() {
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [customerPackage, setCustomerPackage] = useState<string>("standard");
-  const [shippingEstimate, setShippingEstimate] = useState<{ amount: string; rateStr: string; tier: string } | null>(null);
+  const [pkgEstimate, setPkgEstimate] = useState<{ amount: string; rateStr: string; label: string } | null>(null);
+  const [specialEstimate, setSpecialEstimate] = useState<{ amount: string; rateStr: string; label: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -114,7 +115,7 @@ export default function AdminItemDetailPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Compute live shipping estimate from localStorage rates
+  // Compute live shipping estimates (package tier + special rate) from localStorage
   useEffect(() => {
     if (!item) return;
     try {
@@ -122,51 +123,40 @@ export default function AdminItemDetailPage() {
       const pkgRates = JSON.parse(localStorage.getItem("pakk_package_rates") ?? "{}") as Record<string, { sea?: number; air?: number }>;
       const specialRatesRaw = JSON.parse(localStorage.getItem("pakk_special_rates") ?? "[]") as { id: string; name: string; sea: number; air: number }[];
       const qty = item.quantity ?? 1;
-      let costGhs = 0;
-      let rateStr = "";
 
+      function calcCost(seaRate: number, airRate: number): { costGhs: number; rateStr: string } {
+        if (item!.shippingType === "air" && item!.weight) {
+          return { costGhs: item!.weight * qty * airRate, rateStr: `GH₵${airRate}/kg` };
+        } else if (item!.length && item!.width && item!.height) {
+          const factor = item!.dimensionUnit === "inches" ? 0.000016387 : 0.000001;
+          const cbm = item!.length * item!.width * item!.height * factor * qty;
+          return { costGhs: cbm * seaRate, rateStr: `GH₵${seaRate}/m³` };
+        }
+        return { costGhs: 0, rateStr: "" };
+      }
+
+      // 1. Package tier estimate — use builtin tier, fallback to standard
       const isBuiltin = BUILTIN_TIERS.has(customerPackage.toLowerCase());
+      const tierKey = isBuiltin ? customerPackage : "standard";
+      const tierRates = pkgRates[tierKey] ?? { sea: 0, air: 0 };
+      const tierLabel = isBuiltin
+        ? customerPackage.charAt(0).toUpperCase() + customerPackage.slice(1)
+        : "Standard";
+      const { costGhs: pkgCost, rateStr: pkgRateStr } = calcCost(tierRates.sea ?? 0, tierRates.air ?? 0);
+      setPkgEstimate(pkgCost > 0 ? { amount: pkgCost.toFixed(2), rateStr: pkgRateStr, label: tierLabel } : null);
+
+      // 2. Special rate estimate — match by customer package name
       const specialMatch = specialRatesRaw.find((r) => r.name.toLowerCase() === customerPackage.toLowerCase());
-
-      if (!isBuiltin && !specialMatch) {
-        // Named special rate package but rate not found in localStorage — don't show misleading estimate
-        setShippingEstimate(null);
-        return;
-      }
-
       if (specialMatch) {
-        // Use matched special rate directly
-        if (item.shippingType === "air" && item.weight) {
-          costGhs = item.weight * qty * specialMatch.air;
-          rateStr = `GH₵${specialMatch.air}/kg (${specialMatch.name})`;
-        } else if (item.length && item.width && item.height) {
-          const factor = item.dimensionUnit === "inches" ? 0.000016387 : 0.000001;
-          const cbm = item.length * item.width * item.height * factor * qty;
-          costGhs = cbm * specialMatch.sea;
-          rateStr = `GH₵${specialMatch.sea}/m³ (${specialMatch.name})`;
-        }
+        const { costGhs: spCost, rateStr: spRateStr } = calcCost(specialMatch.sea, specialMatch.air);
+        setSpecialEstimate(spCost > 0 ? { amount: spCost.toFixed(2), rateStr: spRateStr, label: specialMatch.name } : null);
       } else {
-        // Builtin tier — look up from package rates
-        const tierRates = pkgRates[customerPackage] ?? pkgRates.standard ?? { sea: 0, air: 0 };
-        if (item.shippingType === "air" && item.weight) {
-          const rate = tierRates.air ?? 0;
-          costGhs = item.weight * qty * rate;
-          rateStr = `GH₵${rate}/kg`;
-        } else if (item.length && item.width && item.height) {
-          const factor = item.dimensionUnit === "inches" ? 0.000016387 : 0.000001;
-          const cbm = item.length * item.width * item.height * factor * qty;
-          const rate = tierRates.sea ?? 0;
-          costGhs = cbm * rate;
-          rateStr = `GH₵${rate}/m³`;
-        }
+        setSpecialEstimate(null);
       }
-
-      if (costGhs > 0) {
-        setShippingEstimate({ amount: costGhs.toFixed(2), rateStr, tier: customerPackage });
-      } else {
-        setShippingEstimate(null);
-      }
-    } catch { setShippingEstimate(null); }
+    } catch {
+      setPkgEstimate(null);
+      setSpecialEstimate(null);
+    }
   }, [item, customerPackage]);
 
   const handleDelete = async () => {
@@ -376,18 +366,31 @@ export default function AdminItemDetailPage() {
                 {item.estShippingPrice != null && (
                   <InfoRow icon={DollarSign} label="Est. Shipping Cost" value={`GH₵ ${item.estShippingPrice.toFixed(2)}`} />
                 )}
-                {/* Live shipping estimate from package/special rates */}
-                {shippingEstimate && (
-                  <div className="py-3">
-                    <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 space-y-1">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-brand-700 font-medium">Live Est. Shipping ({shippingEstimate.tier})</span>
-                        <span className="font-bold text-brand-900">GH₵ {shippingEstimate.amount}</span>
+                {/* Live shipping estimates from package/special rates */}
+                {(pkgEstimate || specialEstimate) && (
+                  <div className="py-3 space-y-2">
+                    {pkgEstimate && (
+                      <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 space-y-1">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-brand-700 font-medium">Est. ({pkgEstimate.label} pkg)</span>
+                          <span className="font-bold text-brand-900">GH₵ {pkgEstimate.amount}</span>
+                        </div>
+                        {pkgEstimate.rateStr && (
+                          <p className="text-xs text-brand-500">Rate: {pkgEstimate.rateStr}</p>
+                        )}
                       </div>
-                      {shippingEstimate.rateStr && (
-                        <p className="text-xs text-brand-500">Rate: {shippingEstimate.rateStr}</p>
-                      )}
-                    </div>
+                    )}
+                    {specialEstimate && (
+                      <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 space-y-1">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-purple-700 font-medium">Est. ({specialEstimate.label} special)</span>
+                          <span className="font-bold text-purple-900">GH₵ {specialEstimate.amount}</span>
+                        </div>
+                        {specialEstimate.rateStr && (
+                          <p className="text-xs text-purple-500">Rate: {specialEstimate.rateStr}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                 {item.isSpecialItem && (
