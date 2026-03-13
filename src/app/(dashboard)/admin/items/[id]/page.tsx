@@ -115,41 +115,37 @@ export default function AdminItemDetailPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Compute live shipping estimates (package tier + special rate) from localStorage
+  // Compute live shipping estimates: package base + special surcharge (additive)
   useEffect(() => {
     if (!item) return;
     try {
-      const BUILTIN_TIERS = new Set(["basic", "business", "enterprise", "special"]);
       const pkgRates = JSON.parse(localStorage.getItem("pakk_package_rates") ?? "{}") as Record<string, { sea?: number; air?: number }>;
       const specialRatesRaw = JSON.parse(localStorage.getItem("pakk_special_rates") ?? "[]") as { id: string; name: string; sea: number; air: number }[];
       const qty = item.quantity ?? 1;
 
-      function calcCost(seaRate: number, airRate: number): { costGhs: number; rateStr: string } {
-        if (item!.shippingType === "air" && item!.weight) {
-          return { costGhs: item!.weight * qty * airRate, rateStr: `GH₵${airRate}/kg` };
-        } else if (item!.length && item!.width && item!.height) {
+      function calcCost(seaRate: number, airRate: number): number {
+        if (item!.shippingType === "air" && item!.weight) return item!.weight * qty * airRate;
+        if (item!.length && item!.width && item!.height) {
           const factor = item!.dimensionUnit === "inches" ? 0.000016387 : 0.000001;
-          const cbm = item!.length * item!.width * item!.height * factor * qty;
-          return { costGhs: cbm * seaRate, rateStr: `GH₵${seaRate}/m³` };
+          return item!.length * item!.width * item!.height * factor * qty * seaRate;
         }
-        return { costGhs: 0, rateStr: "" };
+        return 0;
       }
 
-      // 1. Package tier estimate — use builtin tier, fallback to basic
-      const isBuiltin = BUILTIN_TIERS.has(customerPackage.toLowerCase());
-      const tierKey = isBuiltin ? customerPackage : "basic";
+      // Package tier (basic/business/enterprise)
+      const tierKey = ["basic", "business", "enterprise", "special"].includes(customerPackage.toLowerCase()) ? customerPackage : "basic";
       const tierRates = pkgRates[tierKey] ?? { sea: 0, air: 0 };
-      const tierLabel = isBuiltin
-        ? customerPackage.charAt(0).toUpperCase() + customerPackage.slice(1)
-        : "Basic";
-      const { costGhs: pkgCost, rateStr: pkgRateStr } = calcCost(tierRates.sea ?? 0, tierRates.air ?? 0);
-      setPkgEstimate(pkgCost > 0 ? { amount: pkgCost.toFixed(2), rateStr: pkgRateStr, label: tierLabel } : null);
+      const tierLabel = tierKey.charAt(0).toUpperCase() + tierKey.slice(1);
+      const pkgCost = calcCost(tierRates.sea ?? 0, tierRates.air ?? 0);
+      setPkgEstimate(pkgCost > 0 ? { amount: pkgCost.toFixed(2), rateStr: item.shippingType === "air" ? `GH₵${tierRates.air}/kg` : `GH₵${tierRates.sea}/m³`, label: tierLabel } : null);
 
-      // 2. Special rate estimate — match by customer package name
-      const specialMatch = specialRatesRaw.find((r) => r.name.toLowerCase() === customerPackage.toLowerCase());
+      // Special surcharge — matched by item's saved specialRateName
+      const specialMatch = item.specialRateName
+        ? specialRatesRaw.find((r) => r.name.toLowerCase() === item.specialRateName!.toLowerCase())
+        : null;
       if (specialMatch) {
-        const { costGhs: spCost, rateStr: spRateStr } = calcCost(specialMatch.sea, specialMatch.air);
-        setSpecialEstimate(spCost > 0 ? { amount: spCost.toFixed(2), rateStr: spRateStr, label: specialMatch.name } : null);
+        const spCost = calcCost(specialMatch.sea, specialMatch.air);
+        setSpecialEstimate(spCost > 0 ? { amount: spCost.toFixed(2), rateStr: item.shippingType === "air" ? `GH₵${specialMatch.air}/kg` : `GH₵${specialMatch.sea}/m³`, label: specialMatch.name } : null);
       } else {
         setSpecialEstimate(null);
       }
@@ -366,31 +362,26 @@ export default function AdminItemDetailPage() {
                 {item.estShippingPrice != null && (
                   <InfoRow icon={DollarSign} label="Est. Shipping Cost" value={`GH₵ ${item.estShippingPrice.toFixed(2)}`} />
                 )}
-                {/* Live shipping estimates from package/special rates */}
-                {(pkgEstimate || specialEstimate) && (
-                  <div className="py-3 space-y-2">
-                    {pkgEstimate && (
-                      <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 space-y-1">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-brand-700 font-medium">Est. ({pkgEstimate.label} pkg)</span>
-                          <span className="font-bold text-brand-900">GH₵ {pkgEstimate.amount}</span>
-                        </div>
-                        {pkgEstimate.rateStr && (
-                          <p className="text-xs text-brand-500">Rate: {pkgEstimate.rateStr}</p>
-                        )}
+                {/* Live shipping estimate: package + special surcharge + total */}
+                {pkgEstimate && (
+                  <div className="py-3">
+                    <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 space-y-1.5">
+                      <p className="text-xs font-semibold text-brand-700 mb-1">Shipping Estimate</p>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-brand-600">{pkgEstimate.label} <span className="text-brand-400">({pkgEstimate.rateStr})</span></span>
+                        <span className="font-semibold text-brand-900">GH₵ {pkgEstimate.amount}</span>
                       </div>
-                    )}
-                    {specialEstimate && (
-                      <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 space-y-1">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-purple-700 font-medium">Est. ({specialEstimate.label} special)</span>
-                          <span className="font-bold text-purple-900">GH₵ {specialEstimate.amount}</span>
+                      {specialEstimate && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-purple-600">+ {specialEstimate.label} <span className="text-purple-400">({specialEstimate.rateStr})</span></span>
+                          <span className="font-semibold text-purple-900">GH₵ {specialEstimate.amount}</span>
                         </div>
-                        {specialEstimate.rateStr && (
-                          <p className="text-xs text-purple-500">Rate: {specialEstimate.rateStr}</p>
-                        )}
+                      )}
+                      <div className="flex justify-between text-xs border-t border-brand-100 pt-1.5 mt-0.5">
+                        <span className="font-semibold text-brand-800">Total Est.</span>
+                        <span className="font-bold text-brand-900">GH₵ {(parseFloat(pkgEstimate.amount) + parseFloat(specialEstimate?.amount ?? "0")).toFixed(2)}</span>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
                 {item.isSpecialItem && (

@@ -113,6 +113,7 @@ export interface Item {
   estPrice?: number;
   estShippingPrice?: number;
   isSpecialItem?: boolean;
+  specialRateName?: string;
   notes?: string;
   createdAt: string;
   createdBy?: string;
@@ -134,6 +135,7 @@ export interface CreateItemInput {
   estPrice?: number;
   estShippingPrice?: number;
   isSpecialItem?: boolean;
+  specialRateName?: string;
   notes?: string;
 }
 
@@ -155,6 +157,7 @@ export interface UpdateItemInput {
   estShippingPrice?: number;
   quantity?: number;
   shippingType?: "air" | "sea";
+  specialRateName?: string;
   status?: string;
 }
 

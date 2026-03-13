@@ -62,6 +62,8 @@ export default function CustomerCalculatorPage() {
   const [activePackage, setActivePackage] = useState<CustomerPackage | null>(null);
   const [showPkgPicker, setShowPkgPicker] = useState(false);
   const [savingPackage, setSavingPackage] = useState(false);
+  const [specialRates, setSpecialRates] = useState<{ id: string; name: string; sea: number; air: number }[]>([]);
+  const [selectedSpecialId, setSelectedSpecialId] = useState<string>("");
 
   // Estimator
   const [dimUnit, setDimUnit] = useState<DimUnit>("cm");
@@ -84,6 +86,8 @@ export default function CustomerCalculatorPage() {
       if (saved) { const p = JSON.parse(saved); if (p.ghsPerUsd) setGhsPerUsd(p.ghsPerUsd); }
       const savedPkg = localStorage.getItem("pakk_package_rates");
       if (savedPkg) setPkgRates({ ...DEFAULT_PKG_RATES, ...JSON.parse(savedPkg) });
+      const savedSpecial = localStorage.getItem("pakk_special_rates");
+      if (savedSpecial) setSpecialRates(JSON.parse(savedSpecial));
     } catch { /* ignore */ }
     if (appUser?.package) setActivePackage(appUser.package);
   }, [appUser?.package]);
@@ -107,6 +111,8 @@ export default function CustomerCalculatorPage() {
     : null;
   const currentRates = (activePackage ? pkgRates[activePackage] : null) ?? pkgRates.basic ?? DEFAULT_PKG_RATES.basic;
 
+  const selectedSpecial = specialRates.find((r) => r.id === selectedSpecialId) ?? null;
+
   // Estimator
   const cbmValue = (() => {
     const l = n(length), w = n(width), h = n(height), q = Math.max(1, n(qty));
@@ -115,6 +121,8 @@ export default function CustomerCalculatorPage() {
   })();
   const seaCost = cbmValue > 0 ? cbmValue * currentRates.sea : 0;
   const airCost = n(weight) > 0 ? n(weight) * Math.max(1, n(qty)) * currentRates.air : 0;
+  const seaSpecial = selectedSpecial && cbmValue > 0 ? cbmValue * selectedSpecial.sea : 0;
+  const airSpecial = selectedSpecial && n(weight) > 0 ? n(weight) * Math.max(1, n(qty)) * selectedSpecial.air : 0;
   const cheaper = seaCost > 0 && airCost > 0 ? (seaCost < airCost ? "sea" : "air") : null;
 
   // CBM
@@ -169,9 +177,33 @@ export default function CustomerCalculatorPage() {
             )}
           </div>
           {activePackage && (
-            <p className="text-xs text-gray-400">Sea: ${currentRates.sea}/CBM · Air: ${currentRates.air}/kg</p>
+            <p className="text-xs text-gray-400">Sea: GH₵{currentRates.sea}/CBM · Air: GH₵{currentRates.air}/kg</p>
           )}
         </div>
+
+        {/* Special rate selector */}
+        {specialRates.length > 0 && (
+          <div className="flex items-center gap-3 mb-4">
+            <p className="text-xs text-gray-500 shrink-0">Special rate:</p>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setSelectedSpecialId("")}
+                className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-colors ${!selectedSpecialId ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+              >
+                None
+              </button>
+              {specialRates.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setSelectedSpecialId(r.id === selectedSpecialId ? "" : r.id)}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-colors ${selectedSpecialId === r.id ? "bg-purple-600 text-white border-purple-600" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+                >
+                  {r.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-full max-w-lg">
@@ -211,28 +243,30 @@ export default function CustomerCalculatorPage() {
               <div className={`bg-white border rounded-2xl p-5 transition-all ${cheaper === "sea" ? "border-brand-300 ring-2 ring-brand-100" : "border-gray-100"}`}>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center"><Anchor className="h-4 w-4 text-blue-600" /></div>
-                  <div><p className="text-sm font-semibold text-gray-800">Sea Freight</p><p className="text-xs text-gray-400">${currentRates.sea}/CBM</p></div>
+                  <div><p className="text-sm font-semibold text-gray-800">Sea Freight</p><p className="text-xs text-gray-400">GH₵{currentRates.sea}/CBM</p></div>
                   {cheaper === "sea" && <span className="ml-auto text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">Cheaper</span>}
                 </div>
                 {cbmValue > 0 ? (
                   <>
                     <Row label="Volume" value={`${cbmValue.toFixed(4)} m³`} />
-                    <Row label="Sea Cost (USD)" value={`$${seaCost.toFixed(2)}`} highlight />
-                    <Row label="Sea Cost (GHS)" value={`GH₵${(seaCost * ghsPerUsd).toFixed(2)}`} highlight />
+                    <Row label={`${activeMeta?.label ?? "Package"} rate`} value={`GH₵${seaCost.toFixed(2)}`} />
+                    {seaSpecial > 0 && <Row label={`+ ${selectedSpecial!.name}`} value={`GH₵${seaSpecial.toFixed(2)}`} />}
+                    <Row label="Total Sea Est." value={`GH₵${(seaCost + seaSpecial).toFixed(2)}`} highlight />
                   </>
                 ) : <p className="text-sm text-gray-400 text-center py-3">Enter dimensions above</p>}
               </div>
               <div className={`bg-white border rounded-2xl p-5 transition-all ${cheaper === "air" ? "border-brand-300 ring-2 ring-brand-100" : "border-gray-100"}`}>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center"><Wind className="h-4 w-4 text-purple-600" /></div>
-                  <div><p className="text-sm font-semibold text-gray-800">Air Freight</p><p className="text-xs text-gray-400">${currentRates.air}/kg</p></div>
+                  <div><p className="text-sm font-semibold text-gray-800">Air Freight</p><p className="text-xs text-gray-400">GH₵{currentRates.air}/kg</p></div>
                   {cheaper === "air" && <span className="ml-auto text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">Cheaper</span>}
                 </div>
                 {airCost > 0 ? (
                   <>
                     <Row label="Weight" value={`${(n(weight) * Math.max(1, n(qty))).toFixed(2)} kg`} />
-                    <Row label="Air Cost (USD)" value={`$${airCost.toFixed(2)}`} highlight />
-                    <Row label="Air Cost (GHS)" value={`GH₵${(airCost * ghsPerUsd).toFixed(2)}`} highlight />
+                    <Row label={`${activeMeta?.label ?? "Package"} rate`} value={`GH₵${airCost.toFixed(2)}`} />
+                    {airSpecial > 0 && <Row label={`+ ${selectedSpecial!.name}`} value={`GH₵${airSpecial.toFixed(2)}`} />}
+                    <Row label="Total Air Est." value={`GH₵${(airCost + airSpecial).toFixed(2)}`} highlight />
                   </>
                 ) : <p className="text-sm text-gray-400 text-center py-3">Enter weight above</p>}
               </div>
@@ -268,7 +302,7 @@ export default function CustomerCalculatorPage() {
                 {n(cbmQty) <= 1 && <p className="text-lg font-bold text-brand-700">{cbmResult.single.toFixed(4)} m³</p>}
                 <div className="pt-2 border-t border-brand-100 space-y-1">
                   <p className="text-xs text-brand-600 font-medium">Estimated sea shipping:</p>
-                  <p className="text-sm font-bold text-brand-800">${(cbmResult.total * currentRates.sea).toFixed(2)} USD · GH₵{(cbmResult.total * currentRates.sea * ghsPerUsd).toFixed(2)}</p>
+                  <p className="text-sm font-bold text-brand-800">GH₵{(cbmResult.total * currentRates.sea).toFixed(2)}</p>
                 </div>
               </div>
             ) : (

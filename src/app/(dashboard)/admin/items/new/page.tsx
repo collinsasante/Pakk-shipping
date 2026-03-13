@@ -256,17 +256,15 @@ export default function NewItemPage() {
       }
 
       const selectedRate = specialRates.find((r) => r.id === selectedSpecialRateId);
-      const notesWithRate = selectedRate
-        ? `[Special Rate: ${selectedRate.name}]${form.notes ? "\n" + form.notes : ""}`
-        : form.notes;
 
       const payload = {
         ...form,
-        notes: notesWithRate || undefined,
+        notes: form.notes || undefined,
         weight: form.weight ? parseFloat(form.weight) : undefined,
         estPrice: form.estPrice ? parseFloat(form.estPrice) : undefined,
         estShippingPrice: form.estShippingPrice ? parseFloat(form.estShippingPrice) : undefined,
         isSpecialItem: (isSpecialItem || !!selectedRate) || undefined,
+        specialRateName: selectedRate?.name || undefined,
         length: form.length ? parseFloat(form.length) : undefined,
         width: form.width ? parseFloat(form.width) : undefined,
         height: form.height ? parseFloat(form.height) : undefined,

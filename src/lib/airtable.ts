@@ -244,6 +244,7 @@ function mapItem(record: AirtableRecord<FieldSet>): Item {
     estPrice: (f["EstPrice"] as number) ?? undefined,
     estShippingPrice: (f["EstShippingPrice"] as number) ?? undefined,
     isSpecialItem: (f["IsSpecialItem"] as boolean) ?? undefined,
+    specialRateName: (f["SpecialRateName"] as string) ?? undefined,
     notes: (f["Notes"] as string) ?? undefined,
     createdAt: (f["CreatedAt"] as string) ?? toISOString(),
     createdBy: (f["CreatedBy"] as string) ?? undefined,
@@ -585,6 +586,7 @@ export const itemsApi = {
     if (input.estPrice !== undefined) fields["EstPrice"] = input.estPrice;
     if (input.estShippingPrice !== undefined) fields["EstShippingPrice"] = input.estShippingPrice;
     if (input.isSpecialItem !== undefined) fields["IsSpecialItem"] = input.isSpecialItem;
+    if (input.specialRateName !== undefined) fields["SpecialRateName"] = input.specialRateName;
     if (input.photoUrls && input.photoUrls.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fields["Photos"] = input.photoUrls.map((url) => ({ url })) as any;
@@ -618,6 +620,7 @@ export const itemsApi = {
     if (input.quantity !== undefined) fields["Quantity"] = input.quantity;
     if (input.shippingType !== undefined) fields["FreightType"] = input.shippingType;
     if (input.dimensionUnit !== undefined) fields["DimensionUnit"] = input.dimensionUnit;
+    if (input.specialRateName !== undefined) fields["SpecialRateName"] = input.specialRateName;
     if (input.photoUrls !== undefined) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fields["Photos"] = input.photoUrls.map((url) => ({ url })) as any;
