@@ -105,7 +105,7 @@ export default function CustomerCalculatorPage() {
   const activeMeta = activePackage
     ? (PACKAGE_META[activePackage] ?? { label: activePackage, color: "bg-gray-100 text-gray-700" })
     : null;
-  const currentRates = (activePackage ? pkgRates[activePackage] : null) ?? pkgRates.standard ?? DEFAULT_PKG_RATES.standard;
+  const currentRates = (activePackage ? pkgRates[activePackage] : null) ?? pkgRates.basic ?? DEFAULT_PKG_RATES.basic;
 
   // Estimator
   const cbmValue = (() => {
