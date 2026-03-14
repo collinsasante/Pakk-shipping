@@ -25,7 +25,7 @@ export default function NewOrderPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [customerItems, setCustomerItems] = useState<Item[]>([]);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
-  const [invoiceAmount, setInvoiceAmount] = useState("");
+  const [invoiceAmount, setInvoiceAmount] = useState("0");
   const [invoiceDate, setInvoiceDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -145,7 +145,7 @@ export default function NewOrderPage() {
       const next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
       const selectedItems = customerItems.filter((item) => next.includes(item.id));
       const auto = calcTotalGhs(selectedItems);
-      if (auto > 0) setInvoiceAmount(String(auto));
+      setInvoiceAmount(String(auto));
       return next;
     });
   };
@@ -155,8 +155,8 @@ export default function NewOrderPage() {
     if (!selectedCustomerId) return error("Please select a customer");
     if (selectedItemIds.length === 0)
       return error("Please select at least one item");
-    if (!invoiceAmount || Number(invoiceAmount) <= 0)
-      return error("Invoice amount is required", "Set billing rates in Staff settings if it's not auto-calculating");
+    if (Number(invoiceAmount) <= 0)
+      return error("Invoice amount is required", "Items must have an est. shipping price set");
 
     setSubmitting(true);
     try {
@@ -266,7 +266,7 @@ export default function NewOrderPage() {
                   <input
                     type="text"
                     readOnly
-                    value={invoiceAmount ? `$ ${Number(invoiceAmount).toFixed(2)}` : ""}
+                    value={`$ ${Number(invoiceAmount || 0).toFixed(2)}`}
                     placeholder="Select items to auto-calculate"
                     className="h-10 w-full px-3 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-700 cursor-default"
                   />
