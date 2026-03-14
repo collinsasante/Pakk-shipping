@@ -15,6 +15,14 @@ export default function CustomerOrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usdToGhs, setUsdToGhs] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
+      if (parsed.usdToGhs && parsed.usdToGhs > 0) setUsdToGhs(parsed.usdToGhs);
+    } catch { /* ignore */ }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -70,6 +78,7 @@ export default function CustomerOrdersPage() {
               <div className="flex items-center gap-3 shrink-0">
                 <div className="text-right">
                   <p className="font-bold text-gray-900">{formatCurrency(order.invoiceAmount)}</p>
+                  {usdToGhs != null && <p className="text-xs text-amber-600 font-medium">{formatCurrency(order.invoiceAmount * usdToGhs, "GHS")}</p>}
                   <StatusBadge status={order.status} />
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-300" />

@@ -59,6 +59,14 @@ export default function OrdersPage() {
   const { success, error } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usdToGhs, setUsdToGhs] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
+      if (parsed.usdToGhs && parsed.usdToGhs > 0) setUsdToGhs(parsed.usdToGhs);
+    } catch { /* ignore */ }
+  }, []);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -191,9 +199,10 @@ export default function OrdersPage() {
               key: "invoiceAmount",
               header: "Amount",
               render: (o) => (
-                <span className="font-bold text-sm">
-                  {formatCurrency(o.invoiceAmount)}
-                </span>
+                <div>
+                  <span className="font-bold text-sm">{formatCurrency(o.invoiceAmount)}</span>
+                  {usdToGhs != null && <p className="text-xs text-amber-600 font-medium">{formatCurrency(o.invoiceAmount * usdToGhs, "GHS")}</p>}
+                </div>
               ),
             },
             {

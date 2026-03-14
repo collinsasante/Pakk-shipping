@@ -5,6 +5,7 @@ import { LucideIcon } from "lucide-react";
 interface StatCardProps {
   title: string;
   value: string | number;
+  valueGhs?: string;
   subtitle?: string;
   icon: LucideIcon;
   iconColor?: string;
@@ -21,6 +22,7 @@ interface StatCardProps {
 export function StatCard({
   title,
   value,
+  valueGhs,
   subtitle,
   icon: Icon,
   iconColor = "text-brand-600",
@@ -39,7 +41,10 @@ export function StatCard({
       </div>
 
       <div className="flex items-end gap-2">
+        <div>
         <p className="text-2xl font-bold text-gray-900">{value}</p>
+        {valueGhs && <p className="text-sm font-semibold text-amber-700 mt-0.5">{valueGhs}</p>}
+        </div>
         {trend && (
           <span
             className={cn(

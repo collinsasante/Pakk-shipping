@@ -59,10 +59,11 @@ interface ReportData {
 }
 
 function StatCard({
-  title, value, sub, icon, color,
+  title, value, valueGhs, sub, icon, color,
 }: {
   title: string;
   value: string;
+  valueGhs?: string;
   sub?: string;
   icon: React.ReactNode;
   color: string;
@@ -74,6 +75,7 @@ function StatCard({
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1">{title}</p>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
+            {valueGhs && <p className="text-sm font-semibold text-amber-700 mt-0.5">{valueGhs}</p>}
             {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
           </div>
           <div className={`p-2.5 rounded-xl ${color}`}>{icon}</div>
@@ -92,6 +94,14 @@ function MonthLabel(month: string): string {
 export default function ReportsPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [usdToGhs, setUsdToGhs] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
+      if (parsed.usdToGhs && parsed.usdToGhs > 0) setUsdToGhs(parsed.usdToGhs);
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     axios.get("/api/reports")
@@ -119,6 +129,7 @@ export default function ReportsPage() {
               <StatCard
                 title="Total Revenue"
                 value={formatCurrency(data.totalRevenue)}
+                valueGhs={usdToGhs != null ? formatCurrency(data.totalRevenue * usdToGhs, "GHS") : undefined}
                 sub="Paid invoices"
                 icon={<TrendingUp className="h-5 w-5 text-green-600" />}
                 color="bg-green-50"
@@ -126,6 +137,7 @@ export default function ReportsPage() {
               <StatCard
                 title="Outstanding"
                 value={formatCurrency(data.pendingRevenue)}
+                valueGhs={usdToGhs != null ? formatCurrency(data.pendingRevenue * usdToGhs, "GHS") : undefined}
                 sub="Pending invoices"
                 icon={<Clock className="h-5 w-5 text-amber-600" />}
                 color="bg-amber-50"
@@ -151,6 +163,7 @@ export default function ReportsPage() {
               <StatCard
                 title="Revenue This Month"
                 value={formatCurrency(data.revenueThisMonth)}
+                valueGhs={usdToGhs != null ? formatCurrency(data.revenueThisMonth * usdToGhs, "GHS") : undefined}
                 sub="Current calendar month"
                 icon={<TrendingUp className="h-5 w-5 text-green-600" />}
                 color="bg-green-50"
@@ -158,6 +171,7 @@ export default function ReportsPage() {
               <StatCard
                 title="Revenue This Year"
                 value={formatCurrency(data.revenueThisYear)}
+                valueGhs={usdToGhs != null ? formatCurrency(data.revenueThisYear * usdToGhs, "GHS") : undefined}
                 sub="Current calendar year"
                 icon={<DollarSign className="h-5 w-5 text-blue-600" />}
                 color="bg-blue-50"
@@ -165,6 +179,7 @@ export default function ReportsPage() {
               <StatCard
                 title="Avg. Order Value"
                 value={formatCurrency(data.avgOrderValue)}
+                valueGhs={usdToGhs != null ? formatCurrency(data.avgOrderValue * usdToGhs, "GHS") : undefined}
                 sub="Per paid invoice"
                 icon={<BarChart2 className="h-5 w-5 text-purple-600" />}
                 color="bg-purple-50"
@@ -279,10 +294,16 @@ export default function ReportsPage() {
                           <tr key={c.id} className={i % 2 === 0 ? "" : "bg-gray-50"}>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">{c.name}</td>
                             <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.totalOrders}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900 font-medium text-right">{formatCurrency(c.totalRevenue)}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900 font-medium text-right">
+                              <div>{formatCurrency(c.totalRevenue)}</div>
+                              {usdToGhs != null && <div className="text-xs text-amber-600 font-medium">{formatCurrency(c.totalRevenue * usdToGhs, "GHS")}</div>}
+                            </td>
                             <td className="px-4 py-3 text-sm text-right">
                               {c.outstandingBalance > 0 ? (
-                                <span className="text-amber-600 font-medium">{formatCurrency(c.outstandingBalance)}</span>
+                                <div>
+                                  <span className="text-amber-600 font-medium">{formatCurrency(c.outstandingBalance)}</span>
+                                  {usdToGhs != null && <p className="text-xs text-amber-600 font-medium">{formatCurrency(c.outstandingBalance * usdToGhs, "GHS")}</p>}
+                                </div>
                               ) : (
                                 <span className="text-gray-400">—</span>
                               )}
@@ -321,7 +342,10 @@ export default function ReportsPage() {
                           <tr key={p.id} className={i % 2 === 0 ? "" : "bg-gray-50"}>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">{p.customerName}</td>
                             <td className="px-4 py-3 text-sm font-mono text-gray-600">{p.orderRef}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">{formatCurrency(p.invoiceAmount)}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
+                              <div>{formatCurrency(p.invoiceAmount)}</div>
+                              {usdToGhs != null && <div className="text-xs text-amber-600 font-medium">{formatCurrency(p.invoiceAmount * usdToGhs, "GHS")}</div>}
+                            </td>
                             <td className="px-4 py-3 text-sm text-gray-600">
                               {p.invoiceDate
                                 ? new Date(p.invoiceDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -357,9 +381,10 @@ export default function ReportsPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-0.5">
                               <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              <span className="text-sm font-semibold text-gray-700 ml-2 shrink-0">
-                                {formatCurrency(c.revenue)}
-                              </span>
+                              <div className="text-right ml-2 shrink-0">
+                                <span className="text-sm font-semibold text-gray-700">{formatCurrency(c.revenue)}</span>
+                                {usdToGhs != null && <p className="text-xs text-amber-600 font-medium">{formatCurrency(c.revenue * usdToGhs, "GHS")}</p>}
+                              </div>
                             </div>
                             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                               <div

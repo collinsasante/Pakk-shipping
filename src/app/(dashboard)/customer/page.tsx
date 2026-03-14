@@ -53,6 +53,14 @@ export default function CustomerDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<CustomerDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [usdToGhs, setUsdToGhs] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
+      if (parsed.usdToGhs && parsed.usdToGhs > 0) setUsdToGhs(parsed.usdToGhs);
+    } catch { /* ignore */ }
+  }, []);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [period, setPeriod] = useState<Period>("all");
   const [customFrom, setCustomFrom] = useState("");
@@ -183,6 +191,7 @@ export default function CustomerDashboardPage() {
           <StatCard
             title="Outstanding Balance"
             value={stats ? formatCurrency(filteredPendingPayment) : "—"}
+            valueGhs={stats && usdToGhs != null ? formatCurrency(filteredPendingPayment * usdToGhs, "GHS") : undefined}
             subtitle="Pending payment"
             icon={DollarSign}
             iconColor="text-amber-600"

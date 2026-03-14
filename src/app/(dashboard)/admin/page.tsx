@@ -118,7 +118,7 @@ export default function AdminDashboardPage() {
             {/* Summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { title: "Revenue This Year", value: formatCurrency(report.revenueThisYear), sub: "Current calendar year", icon: <DollarSign className="h-5 w-5 text-blue-600" />, bg: "bg-blue-50", ghsValue: null as number | null },
+                { title: "Revenue This Year", value: formatCurrency(report.revenueThisYear), sub: "Current calendar year", icon: <DollarSign className="h-5 w-5 text-blue-600" />, bg: "bg-blue-50", ghsValue: usdToGhs != null ? report.revenueThisYear * usdToGhs : null },
                 { title: "Outstanding", value: formatCurrency(report.pendingRevenue), sub: "Pending invoices", icon: <Clock className="h-5 w-5 text-amber-600" />, bg: "bg-amber-50", ghsValue: usdToGhs != null ? report.pendingRevenue * usdToGhs : null },
                 { title: "Total Invoices", value: report.totalOrders.toLocaleString(), sub: "All time", icon: <ShoppingCart className="h-5 w-5 text-blue-600" />, bg: "bg-blue-50", ghsValue: null as number | null },
               ].map(({ title, value, sub, icon, bg, ghsValue }) => (
@@ -217,7 +217,10 @@ export default function AdminDashboardPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-0.5">
                               <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              <span className="text-sm font-semibold text-gray-700 ml-2 shrink-0">{formatCurrency(c.revenue)}</span>
+                              <div className="text-right ml-2 shrink-0">
+                                <span className="text-sm font-semibold text-gray-700">{formatCurrency(c.revenue)}</span>
+                                {usdToGhs != null && <p className="text-xs text-amber-600 font-medium">{formatCurrency(c.revenue * usdToGhs, "GHS")}</p>}
+                              </div>
                             </div>
                             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                               <div className="h-full bg-brand-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />

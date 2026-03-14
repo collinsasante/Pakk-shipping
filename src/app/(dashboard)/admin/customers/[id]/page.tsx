@@ -40,11 +40,19 @@ export default function CustomerDetailPage() {
   const { error, success } = useToast();
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [usdToGhs, setUsdToGhs] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", notes: "", status: "active" as "active" | "inactive", shippingType: "" as "air" | "sea" | "", shippingAddress: "", package: "" as "basic" | "business" | "enterprise" | "special" | "" });
   const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
+      if (parsed.usdToGhs && parsed.usdToGhs > 0) setUsdToGhs(parsed.usdToGhs);
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -400,9 +408,10 @@ export default function CustomerDetailPage() {
                     key: "invoiceAmount",
                     header: "Amount",
                     render: (o) => (
-                      <span className="font-semibold">
-                        {formatCurrency(o.invoiceAmount)}
-                      </span>
+                      <div>
+                        <span className="font-semibold">{formatCurrency(o.invoiceAmount)}</span>
+                        {usdToGhs != null && <p className="text-xs text-amber-600 font-medium">{formatCurrency(o.invoiceAmount * usdToGhs, "GHS")}</p>}
+                      </div>
                     ),
                   },
                   {

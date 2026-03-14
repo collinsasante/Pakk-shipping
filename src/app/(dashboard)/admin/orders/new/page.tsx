@@ -8,7 +8,7 @@ import { ArrowLeft, Package, ShoppingCart, Loader2, Search } from "lucide-react"
 import axios from "axios";
 import { useToast } from "@/components/ui/toast";
 import type { Customer, Item } from "@/types";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatCurrency } from "@/lib/utils";
 
 const DRAFT_LS_KEY = "pakk_new_order_draft";
 
@@ -30,12 +30,20 @@ export default function NewOrderPage() {
     new Date().toISOString().split("T")[0]
   );
   const [notes, setNotes] = useState("");
+  const [usdToGhs, setUsdToGhs] = useState<number | null>(null);
   const draftRestoredRef = React.useRef(false);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [loadingItems, setLoadingItems] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("pakk_exchange_rates") ?? "{}");
+      if (parsed.usdToGhs && parsed.usdToGhs > 0) setUsdToGhs(parsed.usdToGhs);
+    } catch { /* ignore */ }
+  }, []);
 
   // Persist draft to localStorage (invoiceAmount excluded — always recomputed from items)
   useEffect(() => {
@@ -364,6 +372,9 @@ export default function NewOrderPage() {
                         <span className="text-xs font-semibold text-brand-700">
                           $ {item.estShippingPrice.toFixed(2)}
                         </span>
+                      )}
+                      {item.estShippingPrice != null && usdToGhs != null && (
+                        <p className="text-xs text-amber-600 font-medium">{formatCurrency(item.estShippingPrice * usdToGhs, "GHS")}</p>
                       )}
                       <p className="text-xs text-gray-400">{item.status}</p>
                     </div>
