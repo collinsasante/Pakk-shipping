@@ -243,6 +243,9 @@ function mapItem(record: AirtableRecord<FieldSet>): Item {
     quantity: (f["Quantity"] as number) ?? undefined,
     estPrice: (f["EstPrice"] as number) ?? undefined,
     estShippingPrice: (f["EstShippingPrice"] as number) ?? undefined,
+    pkgEstShipping: (f["PkgEstShipping"] as number) ?? undefined,
+    pkgShippingRate: (f["PkgShippingRate"] as number) ?? undefined,
+    specialShippingRate: (f["SpecialShippingRate"] as number) ?? undefined,
     isSpecialItem: (f["IsSpecialItem"] as boolean) ?? undefined,
     specialRateName: (f["SpecialRateName"] as string) ?? undefined,
     notes: (f["Notes"] as string) ?? undefined,
@@ -585,6 +588,9 @@ export const itemsApi = {
     if (input.quantity) fields["Quantity"] = input.quantity;
     if (input.estPrice !== undefined) fields["EstPrice"] = input.estPrice;
     if (input.estShippingPrice !== undefined) fields["EstShippingPrice"] = input.estShippingPrice;
+    if (input.pkgEstShipping !== undefined) fields["PkgEstShipping"] = input.pkgEstShipping;
+    if (input.pkgShippingRate !== undefined) fields["PkgShippingRate"] = input.pkgShippingRate;
+    if (input.specialShippingRate !== undefined) fields["SpecialShippingRate"] = input.specialShippingRate;
     if (input.isSpecialItem !== undefined) fields["IsSpecialItem"] = input.isSpecialItem;
     if (input.specialRateName !== undefined) fields["SpecialRateName"] = input.specialRateName;
     if (input.photoUrls && input.photoUrls.length > 0) {

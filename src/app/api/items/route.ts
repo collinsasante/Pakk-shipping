@@ -23,6 +23,13 @@ const CreateItemSchema = z.object({
   quantity: z.number().int().positive().max(10000).optional(),
   notes: z.string().max(2000).optional(),
   photoUrls: z.array(z.string().url().max(500)).max(20).optional(),
+  estPrice: z.number().min(0).max(500_000).optional(),
+  estShippingPrice: z.number().min(0).max(500_000).optional(),
+  pkgEstShipping: z.number().min(0).max(500_000).optional(),
+  pkgShippingRate: z.number().min(0).max(500_000).optional(),
+  specialShippingRate: z.number().min(0).max(500_000).optional(),
+  isSpecialItem: z.boolean().optional(),
+  specialRateName: z.string().max(100).optional(),
 });
 
 // GET /api/items

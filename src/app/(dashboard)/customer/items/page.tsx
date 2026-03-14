@@ -331,25 +331,45 @@ export default function CustomerItemsPage() {
                 {selectedItem.quantity && <DetailRow label="Quantity" value={String(selectedItem.quantity)} />}
                 {selectedItem.estPrice != null && <DetailRow label="Est. Item Price" value={`$ ${selectedItem.estPrice.toFixed(2)}`} />}
                 {selectedItem.estShippingPrice != null && <DetailRow label="Est. Shipping Price" value={`$ ${selectedItem.estShippingPrice.toFixed(2)}`} />}
-                {pkgEst && (
-                  <div className="mt-2 bg-brand-50 border border-brand-100 rounded-xl p-3 space-y-1.5">
-                    <p className="text-xs font-semibold text-brand-700">Shipping Estimate</p>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-brand-600">{pkgEst.label} <span className="text-brand-400">({pkgEst.rateStr})</span></span>
-                      <span className="font-semibold text-brand-900">$ {pkgEst.amount}</span>
-                    </div>
-                    {spEst && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-purple-600">{spEst.label} <span className="text-purple-400">({spEst.rateStr})</span></span>
-                        <span className="font-semibold text-purple-900">$ {spEst.amount}</span>
+                {(selectedItem.pkgEstShipping != null || pkgEst) && (() => {
+                  const rateUnit = selectedItem.shippingType === "air" ? "kg" : "m³";
+                  const displayPkg = selectedItem.pkgEstShipping != null
+                    ? {
+                        amount: selectedItem.pkgEstShipping.toFixed(2),
+                        rateStr: selectedItem.pkgShippingRate != null ? `$${selectedItem.pkgShippingRate}/${rateUnit}` : pkgEst?.rateStr ?? "",
+                        label: pkgEst?.label ?? "Basic",
+                      }
+                    : pkgEst;
+                  const displaySpecial = (selectedItem.isSpecialItem && selectedItem.estShippingPrice != null && selectedItem.specialRateName)
+                    ? {
+                        amount: selectedItem.estShippingPrice.toFixed(2),
+                        rateStr: selectedItem.specialShippingRate != null ? `$${selectedItem.specialShippingRate}/${rateUnit}` : spEst?.rateStr ?? "",
+                        label: selectedItem.specialRateName,
+                      }
+                    : spEst;
+                  const total = displaySpecial ? displaySpecial.amount : displayPkg?.amount ?? "";
+                  return (
+                    <div className="mt-2 bg-brand-50 border border-brand-100 rounded-xl p-3 space-y-1.5">
+                      <p className="text-xs font-semibold text-brand-700">Shipping Estimate</p>
+                      {displayPkg && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-brand-600">{displayPkg.label} <span className="text-brand-400">({displayPkg.rateStr})</span></span>
+                          <span className="font-semibold text-brand-900">$ {displayPkg.amount}</span>
+                        </div>
+                      )}
+                      {displaySpecial && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-purple-600">{displaySpecial.label} <span className="text-purple-400">({displaySpecial.rateStr})</span></span>
+                          <span className="font-semibold text-purple-900">$ {displaySpecial.amount}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs border-t border-brand-100 pt-1.5">
+                        <span className="font-semibold text-brand-800">Est. Shipping Price</span>
+                        <span className="font-bold text-brand-900">$ {total}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between text-xs border-t border-brand-100 pt-1.5">
-                      <span className="font-semibold text-brand-800">Est. Shipping Price</span>
-                      <span className="font-bold text-brand-900">$ {spEst ? spEst.amount : (selectedItem.isSpecialItem && selectedItem.estShippingPrice != null) ? selectedItem.estShippingPrice.toFixed(2) : pkgEst.amount}</span>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
                 {selectedItem.shippingType === "sea" && selectedItem.length && selectedItem.width && selectedItem.height ? (
                   <DetailRow
                     label="CBM"

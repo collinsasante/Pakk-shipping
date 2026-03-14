@@ -112,6 +112,9 @@ export interface Item {
   quantity?: number;
   estPrice?: number;
   estShippingPrice?: number;
+  pkgEstShipping?: number;
+  pkgShippingRate?: number;
+  specialShippingRate?: number;
   isSpecialItem?: boolean;
   specialRateName?: string;
   notes?: string;
@@ -134,6 +137,9 @@ export interface CreateItemInput {
   quantity?: number;
   estPrice?: number;
   estShippingPrice?: number;
+  pkgEstShipping?: number;
+  pkgShippingRate?: number;
+  specialShippingRate?: number;
   isSpecialItem?: boolean;
   specialRateName?: string;
   notes?: string;

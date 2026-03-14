@@ -124,6 +124,8 @@ export default function NewItemPage() {
   const [isSpecialItem, setIsSpecialItem] = useState(false);
   const [specialRates, setSpecialRates] = useState<SpecialRate[]>([]);
   const [selectedSpecialRateId, setSelectedSpecialRateId] = useState("");
+  const [pkgRatePerUnit, setPkgRatePerUnit] = useState<number | null>(null);
+  const [pkgAmountCalc, setPkgAmountCalc] = useState<number | null>(null);
   const [specialSearch, setSpecialSearch] = useState("");
 
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
@@ -157,8 +159,6 @@ export default function NewItemPage() {
 
   // Auto-fill estShippingPrice from customer package tier rates (all items)
   useEffect(() => {
-    // Special rate takes priority — handled by the effect below
-    if (selectedSpecialRateId) return;
     try {
       const pkgRates = JSON.parse(localStorage.getItem("pakk_package_rates") ?? "{}");
       const customer = customers.find((c) => c.id === form.customerId);
@@ -166,6 +166,7 @@ export default function NewItemPage() {
       const tierRates = pkgRates[tier] ?? { sea: 350, air: 8 };
       const qty = Math.max(1, parseInt(form.quantity) || 1);
       let costGhs = 0;
+      const ratePerUnit = form.shippingType === "air" ? (tierRates.air ?? 0) : (tierRates.sea ?? 0);
       if (form.shippingType === "air") {
         const w = parseFloat(form.weight) || 0;
         if (w) costGhs = w * qty * tierRates.air;
@@ -173,7 +174,12 @@ export default function NewItemPage() {
         const cbm = getCbm(parseFloat(form.length) || 0, parseFloat(form.width) || 0, parseFloat(form.height) || 0, form.dimensionUnit) * qty;
         if (cbm) costGhs = cbm * tierRates.sea;
       }
-      setForm((prev) => ({ ...prev, estShippingPrice: costGhs > 0 ? costGhs.toFixed(2) : "" }));
+      setPkgRatePerUnit(ratePerUnit > 0 ? ratePerUnit : null);
+      setPkgAmountCalc(costGhs > 0 ? costGhs : null);
+      // Only update estShippingPrice from pkg tier if no special rate selected
+      if (!selectedSpecialRateId) {
+        setForm((prev) => ({ ...prev, estShippingPrice: costGhs > 0 ? costGhs.toFixed(2) : "" }));
+      }
     } catch {}
   }, [form.customerId, customers, form.shippingType, form.length, form.width, form.height, form.dimensionUnit, form.weight, form.quantity, selectedSpecialRateId]);
 
@@ -257,6 +263,9 @@ export default function NewItemPage() {
       }
 
       const selectedRate = specialRates.find((r) => r.id === selectedSpecialRateId);
+      const specialRatePerUnit = selectedRate
+        ? (form.shippingType === "air" ? selectedRate.air : selectedRate.sea)
+        : undefined;
 
       const payload = {
         ...form,
@@ -264,6 +273,9 @@ export default function NewItemPage() {
         weight: form.weight ? parseFloat(form.weight) : undefined,
         estPrice: form.estPrice ? parseFloat(form.estPrice) : undefined,
         estShippingPrice: form.estShippingPrice ? parseFloat(form.estShippingPrice) : undefined,
+        pkgEstShipping: pkgAmountCalc ?? undefined,
+        pkgShippingRate: pkgRatePerUnit ?? undefined,
+        specialShippingRate: specialRatePerUnit,
         isSpecialItem: (isSpecialItem || !!selectedRate) || undefined,
         specialRateName: selectedRate?.name || undefined,
         length: form.length ? parseFloat(form.length) : undefined,
