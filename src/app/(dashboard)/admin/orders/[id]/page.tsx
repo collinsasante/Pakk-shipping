@@ -63,16 +63,33 @@ export default function AdminOrderDetailPage() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [savingPayment, setSavingPayment] = useState(false);
 
+  const paymentCacheKey = `pakk_payment_${id}`;
+
   const load = useCallback(async () => {
     try {
       const res = await axios.get(`/api/orders/${id}`);
       const o: OrderDetail = res.data.data;
       setOrder(o);
-      // Only update keepup payment amounts if the API returned real values (Keepup didn't fail)
-      if (o.keepupAmountPaid != null || o.keepupTotalAmount != null) {
-        setKeepupPaid(o.keepupAmountPaid ?? null);
-        setKeepupBalance(o.keepupBalanceDue ?? null);
-        setKeepupTotal(o.keepupTotalAmount ?? null);
+      // Prefer Keepup values if non-zero; otherwise fall back to localStorage cache
+      const apiPaid = o.keepupAmountPaid ?? null;
+      const apiBalance = o.keepupBalanceDue ?? null;
+      const apiTotal = o.keepupTotalAmount ?? null;
+      if ((apiPaid ?? 0) > 0 || apiTotal != null) {
+        setKeepupPaid(apiPaid);
+        setKeepupBalance(apiBalance);
+        setKeepupTotal(apiTotal);
+        // Update cache with fresh values
+        try { localStorage.setItem(paymentCacheKey, JSON.stringify({ paid: apiPaid, balance: apiBalance, total: apiTotal })); } catch {}
+      } else {
+        // Keepup returned 0/null — use cached values if available
+        try {
+          const cached = JSON.parse(localStorage.getItem(paymentCacheKey) ?? "null");
+          if (cached) {
+            setKeepupPaid(cached.paid);
+            setKeepupBalance(cached.balance);
+            setKeepupTotal(cached.total ?? apiTotal);
+          }
+        } catch {}
       }
       // Fetch customer phone + package tier
       if (o.customerId) {
@@ -87,7 +104,7 @@ export default function AdminOrderDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, error]);
+  }, [id, error, paymentCacheKey]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -149,10 +166,18 @@ export default function AdminOrderDetailPage() {
       success("Payment recorded");
       setPaymentModalOpen(false);
       setPaymentAmount("");
-      // Optimistically update payment figures before re-fetch
-      setKeepupPaid((prev) => (prev ?? 0) + amount);
-      setKeepupBalance((prev) => Math.max(0, (prev ?? (order?.invoiceAmount ?? 0)) - amount));
-      load();
+      // Optimistically update payment figures
+      const newPaid = (keepupPaid ?? 0) + amount;
+      const newBalance = Math.max(0, (keepupBalance ?? (order?.invoiceAmount ?? 0)) - amount);
+      const newTotal = keepupTotal ?? order?.invoiceAmount ?? null;
+      setKeepupPaid(newPaid);
+      setKeepupBalance(newBalance);
+      setKeepupTotal(newTotal);
+      // Persist to localStorage so values survive page refresh
+      try { localStorage.setItem(paymentCacheKey, JSON.stringify({ paid: newPaid, balance: newBalance, total: newTotal })); } catch {}
+      // Update order status optimistically
+      const newStatus = amount >= (order?.invoiceAmount ?? 0) ? "Paid" : "Partial";
+      setOrder((prev) => prev ? { ...prev, status: newStatus } : prev);
     } catch {
       error("Failed to record payment");
     } finally {
@@ -348,7 +373,7 @@ export default function AdminOrderDetailPage() {
                 </div>
                 <div className="flex justify-between items-center border-t border-gray-50 pt-3">
                   <span className="text-xs text-gray-400">Invoice Total</span>
-                  <span className="text-base font-bold text-gray-900">{formatCurrency(order.invoiceAmount)}</span>
+                  <span className="text-base font-bold text-gray-900">{formatCurrency(order.invoiceAmount, "GHS")}</span>
                 </div>
                 {order.createdBy && (
                   <div className="flex justify-between items-center">
@@ -362,17 +387,17 @@ export default function AdminOrderDetailPage() {
                     {keepupTotal != null && (
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-gray-400">Invoice Total</span>
-                        <span className="font-semibold text-gray-800">{formatCurrency(keepupTotal)}</span>
+                        <span className="font-semibold text-gray-800">{formatCurrency(keepupTotal, "GHS")}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-gray-400">Amount Paid</span>
-                      <span className="font-semibold text-green-700">{formatCurrency(keepupPaid ?? 0)}</span>
+                      <span className="font-semibold text-green-700">{formatCurrency(keepupPaid ?? 0, "GHS")}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs border-t border-gray-100 pt-1.5 mt-1">
                       <span className="text-gray-500 font-medium">Balance Due</span>
                       <span className={`font-bold ${(keepupBalance ?? 0) <= 0 ? "text-green-700" : "text-orange-600"}`}>
-                        {formatCurrency(Math.max(0, keepupBalance ?? (order.invoiceAmount - (keepupPaid ?? 0))))}
+                        {formatCurrency(Math.max(0, keepupBalance ?? (order.invoiceAmount - (keepupPaid ?? 0))), "GHS")}
                       </span>
                     </div>
                   </div>
@@ -465,7 +490,7 @@ export default function AdminOrderDetailPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Payment Amount (USD)</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Payment Amount (GHS)</label>
             <input
               type="number"
               step="0.01"
