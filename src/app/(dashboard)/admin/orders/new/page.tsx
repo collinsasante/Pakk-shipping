@@ -271,7 +271,7 @@ export default function NewOrderPage() {
                     className="h-10 w-full px-3 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-700 cursor-default"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Auto-computed from CBM × shipping rate × exchange rate
+                    Auto-computed from sum of selected items&apos; est. shipping prices
                   </p>
                 </div>
                 <div>
