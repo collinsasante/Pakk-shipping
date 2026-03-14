@@ -345,7 +345,7 @@ export default function AdminOrderDetailPage() {
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           <StatusBadge status={item.status} />
                           {itemPrices.get(item.id) != null && (
-                            <span className="text-xs font-semibold text-brand-700">{formatCurrency(itemPrices.get(item.id)!)}</span>
+                            <span className="text-xs font-semibold text-brand-700">{formatCurrency(itemPrices.get(item.id)!, "GHS")}</span>
                           )}
                         </div>
                       </button>
