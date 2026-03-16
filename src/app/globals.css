@@ -35,10 +35,6 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Prevent mobile Safari from auto-zooming on input focus */
-  input, select, textarea {
-    font-size: max(16px, 1em);
-  }
 }
 
 @layer utilities {
@@ -95,4 +91,11 @@
       transform: translateX(0);
     }
   }
+}
+
+/* Prevent mobile Safari auto-zoom on input focus — must be outside @layer to override Tailwind utilities */
+input:not([type="hidden"]),
+select,
+textarea {
+  font-size: 16px !important;
 }
