@@ -34,6 +34,11 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  /* Prevent mobile Safari from auto-zooming on input focus */
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
 }
 
 @layer utilities {

@@ -27,9 +27,21 @@ const AuthContext = createContext<AuthContextValue>({
   refreshUser: async () => {},
 });
 
+const USER_CACHE_KEY = "pakk_user_cache";
+
+function loadCachedUser(): AppUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as AppUser) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
-  const [appUser, setAppUser] = useState<AppUser | null>(null);
+  const [appUser, setAppUser] = useState<AppUser | null>(() => loadCachedUser());
   const [loading, setLoading] = useState(true);
 
   const fetchAppUser = useCallback(async (user: User) => {
@@ -39,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await axios.post("/api/auth/verify", { idToken });
       if (res.data.success) {
         setAppUser(res.data.data.user);
+        try { localStorage.setItem(USER_CACHE_KEY, JSON.stringify(res.data.data.user)); } catch {}
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -47,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (status === 401) {
           // Token is genuinely invalid — sign out
           setAppUser(null);
+          try { localStorage.removeItem(USER_CACHE_KEY); } catch {}
           await signOut().catch(() => {});
         } else if (status === 404 && code === "NOT_REGISTERED") {
           // Not in the system — sign out
@@ -80,11 +94,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const res = await axios.get("/api/auth/verify-cookie");
           if (res.data.success) {
             setAppUser(res.data.data);
+            try { localStorage.setItem(USER_CACHE_KEY, JSON.stringify(res.data.data)); } catch {}
           } else {
             setAppUser(null);
+            try { localStorage.removeItem(USER_CACHE_KEY); } catch {}
           }
         } catch {
           setAppUser(null);
+          try { localStorage.removeItem(USER_CACHE_KEY); } catch {}
         }
       }
 
@@ -100,6 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signOut();
       setFirebaseUser(null);
       setAppUser(null);
+      try { localStorage.removeItem(USER_CACHE_KEY); } catch {}
       window.location.href = "/login";
     } catch {
       // sign out error
