@@ -12,7 +12,7 @@ export async function PATCH(request: NextRequest) {
     const { warehouseId } = body;
     if (!warehouseId) return badRequestResponse("warehouseId is required");
 
-    const customerId = authResult.customerId;
+    const customerId = authResult.user.customerId;
     if (!customerId) return badRequestResponse("No customer record linked to this account");
 
     await customersApi.setPreferredWarehouse(customerId, warehouseId);
