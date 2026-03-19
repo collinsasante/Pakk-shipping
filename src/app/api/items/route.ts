@@ -1,7 +1,7 @@
 // GET  /api/items  — list items
 // POST /api/items  — create item (warehouse staff / admin)
 import { NextRequest } from "next/server";
-import { itemsApi } from "@/lib/airtable";
+import { itemsApi, containersApi } from "@/lib/airtable";
 import {
   requireAuth,
   serverErrorResponse,
@@ -67,6 +67,17 @@ export async function GET(request: NextRequest) {
     const limit = 50;
 
     const allItems = await itemsApi.list(params);
+
+    // Attach container ETA to items
+    const containerIds = [...new Set(allItems.map((i) => i.containerId).filter(Boolean) as string[])];
+    if (containerIds.length > 0) {
+      const containers = await containersApi.getMany(containerIds);
+      const etaMap = new Map(containers.map((c) => [c.id, c.eta] as [string, string | undefined]));
+      for (const item of allItems) {
+        if (item.containerId) item.containerEta = etaMap.get(item.containerId);
+      }
+    }
+
     const total = allItems.length;
     const totalPages = Math.max(1, Math.ceil(total / limit));
     const data = allItems.slice((page - 1) * limit, page * limit);
