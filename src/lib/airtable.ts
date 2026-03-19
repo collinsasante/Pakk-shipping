@@ -686,8 +686,8 @@ export const itemsApi = {
     }
     await updateRecord(TABLES.ITEMS, id, statusUpdateFields);
 
-    // Log status history (non-fatal)
-    statusHistoryApi.log({
+    // Log status history (awaited so Cloudflare Workers doesn't kill the promise)
+    await statusHistoryApi.log({
       recordType: "Item",
       recordId: id,
       recordRef: itemRef,
