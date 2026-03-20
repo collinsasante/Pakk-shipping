@@ -1041,6 +1041,19 @@ export const containersApi = {
     itemId: string,
     addedByEmail: string
   ): Promise<Container> {
+    // Check if item is already in a different container
+    let itemRecord: AirtableRecord<FieldSet>;
+    try {
+      itemRecord = await getRecord(TABLES.ITEMS, itemId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      throw new Error(`[addItem:getItem] ${msg}`);
+    }
+    const existingContainerIds = (itemRecord.fields["Container"] as string[]) ?? [];
+    if (existingContainerIds.length > 0 && !existingContainerIds.includes(containerId)) {
+      throw new BusinessError("This item is already loaded into another container. Remove it from that container first.");
+    }
+
     let container: AirtableRecord<FieldSet>;
     try {
       container = await getRecord(TABLES.CONTAINERS, containerId);

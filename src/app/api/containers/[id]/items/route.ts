@@ -1,7 +1,7 @@
 // POST   /api/containers/[id]/items  — add item to container
 // DELETE /api/containers/[id]/items  — remove item from container
 import { NextRequest } from "next/server";
-import { containersApi } from "@/lib/airtable";
+import { containersApi, BusinessError } from "@/lib/airtable";
 import {
   requireAuth,
   serverErrorResponse,
@@ -43,6 +43,7 @@ export async function POST(
       message: "Item added to container",
     });
   } catch (err) {
+    if (err instanceof BusinessError) return badRequestResponse(err.message);
     const errMsg = err instanceof Error ? err.message : String(err);
     return serverErrorResponse(`Failed to add item: ${errMsg}`);
   }
