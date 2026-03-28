@@ -66,9 +66,7 @@ export default function CustomerSettingsPage() {
   const handlePasswordReset = async () => {
     setSendingReset(true);
     try {
-      const { sendPasswordResetEmail, getAuth } = await import("firebase/auth");
-      const auth = getAuth();
-      await sendPasswordResetEmail(auth, appUser?.email ?? "");
+      await axios.post("/api/auth/reset-password", { email: appUser?.email ?? "" });
       setResetSent(true);
       success("Password reset email sent", `Check ${appUser?.email}`);
     } catch {

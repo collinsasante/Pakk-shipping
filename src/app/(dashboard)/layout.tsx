@@ -18,6 +18,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { open, closeSidebar } = useSidebar();
   const [copied, setCopied] = useState(false);
   const [warehouseAddress, setWarehouseAddress] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (appUser?.role !== "customer") return;
@@ -42,8 +44,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     }).catch(() => {});
   };
 
-  // Show spinner only when loading AND no cached user to display
-  if (loading && !appUser) {
+  // Show spinner until mounted (prevents server/client hydration mismatch from localStorage cache)
+  // or while auth is still resolving with no user yet
+  if (!mounted || (loading && !appUser)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

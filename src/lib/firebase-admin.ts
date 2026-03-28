@@ -170,23 +170,61 @@ export async function getFirebaseUser(uid: string) {
 // ── Email ─────────────────────────────────────────────────────────────────────
 
 /**
- * Sends a Firebase "set / reset your password" email to the given address.
- * Uses the public Web API key — no admin token needed.
+ * Generates a Firebase email verification link WITHOUT sending Firebase's own email.
+ * Uses the admin token + returnOobLink=true so we can send our custom HTML email instead.
  */
-export async function sendPasswordResetEmail(email: string): Promise<void> {
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-  const resp = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestType: "PASSWORD_RESET", email }),
-    }
-  );
+export async function generateEmailVerificationLink(email: string): Promise<string> {
+  const token = await getAdminToken();
+  const resp = await fetch(`${getBaseUrl()}/accounts:sendOobCode`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requestType: "VERIFY_EMAIL",
+      email,
+      returnOobLink: true,
+    }),
+  });
+
   if (!resp.ok) {
     const err = (await resp.json()) as { error?: { message?: string } };
-    throw new Error(err.error?.message ?? "Failed to send password reset email");
+    throw new Error(err.error?.message ?? "Failed to generate verification link");
   }
+
+  const data = (await resp.json()) as { oobLink?: string };
+  if (!data.oobLink) throw new Error("No verification link returned");
+  return data.oobLink;
+}
+
+/**
+ * Generates a Firebase password reset link WITHOUT sending Firebase's own email.
+ * Uses the admin token + returnOobLink=true so we can send our custom HTML email instead.
+ */
+export async function generatePasswordResetLink(email: string): Promise<string> {
+  const token = await getAdminToken();
+  const resp = await fetch(`${getBaseUrl()}/accounts:sendOobCode`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requestType: "PASSWORD_RESET",
+      email,
+      returnOobLink: true,
+    }),
+  });
+
+  if (!resp.ok) {
+    const err = (await resp.json()) as { error?: { message?: string } };
+    throw new Error(err.error?.message ?? "Failed to generate password reset link");
+  }
+
+  const data = (await resp.json()) as { oobLink?: string };
+  if (!data.oobLink) throw new Error("No password reset link returned");
+  return data.oobLink;
 }
 
 // setCustomClaims is a no-op — roles are sourced from Airtable, not JWT claims

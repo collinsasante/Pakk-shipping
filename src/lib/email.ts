@@ -5,33 +5,27 @@
 // Set RESEND_API_KEY and EMAIL_FROM in your environment.
 // If RESEND_API_KEY is missing, emails are skipped (non-fatal).
 // ============================================================
+import { Resend } from "resend";
 
-const RESEND_API_KEY = () => process.env.RESEND_API_KEY;
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = () =>
   process.env.EMAIL_FROM ?? "PAKKmax <noreply@pakkmaxx.com>";
 
-// ---- Core send helper ----
+// ---- Core send helper (HTML string) ----
 export async function sendEmail(
   to: string,
   subject: string,
-  html: string
+  html: string,
 ): Promise<void> {
-  const key = RESEND_API_KEY();
-  if (!key) {
-    return;
-  }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: EMAIL_FROM(), to, subject, html }),
+  if (!process.env.RESEND_API_KEY) return;
+  const resend = getResend();
+  const { error } = await resend.emails.send({
+    from: EMAIL_FROM(),
+    to: [to],
+    subject,
+    html,
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(`Resend ${res.status}: ${JSON.stringify(data)}`);
-  }
+  if (error) throw new Error(`Resend error: ${error.message}`);
 }
 
 // ============================================================
@@ -46,39 +40,32 @@ function baseLayout(content: string, previewText = ""): string {
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   ${previewText ? `<span style="display:none;max-height:0;overflow:hidden;">${previewText}&nbsp;</span>` : ""}
 </head>
-<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 16px;">
+<body style="margin:0;padding:0;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f7;padding:48px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
 
-        <!-- Header -->
+        <!-- Logo -->
         <tr>
-          <td style="background-color:#6d28d9;border-radius:12px 12px 0 0;padding:28px 40px;text-align:center;">
-            <span style="display:inline-block;background-color:rgba(255,255,255,0.15);border-radius:8px;padding:6px 14px;">
-              <span style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;">PAKKmax</span>
-            </span>
-            <p style="margin:8px 0 0;font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:0.5px;text-transform:uppercase;">USA → Ghana Freight Forwarding</p>
+          <td style="padding:0 0 24px;text-align:center;">
+            <img src="https://main.pakkmaxx.pages.dev/logowithtext.png" alt="PAKKmax" width="140" style="display:inline-block;border:0;height:auto;max-width:140px;" />
           </td>
         </tr>
 
-        <!-- Body -->
+        <!-- Card -->
         <tr>
-          <td style="background-color:#fff;padding:40px 40px 32px;">
+          <td style="background-color:#ffffff;border-radius:18px;padding:48px 48px 40px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
             ${content}
           </td>
         </tr>
 
         <!-- Footer -->
         <tr>
-          <td style="background-color:#fff;border-radius:0 0 12px 12px;padding:0 40px 32px;text-align:center;border-top:1px solid #f3f4f6;">
-            <p style="margin:20px 0 4px;font-size:12px;color:#9ca3af;">This email was sent automatically by <strong style="color:#6b7280;">PAKKmax</strong>. Please do not reply.</p>
-            <p style="margin:0;font-size:11px;color:#d1d5db;">&copy; ${new Date().getFullYear()} PAKKmax. All rights reserved.</p>
+          <td style="padding:28px 0 0;text-align:center;">
+            <p style="margin:0 0 6px;font-size:12px;color:#86868b;line-height:1.6;">Copyright &copy; ${new Date().getFullYear()} PAKKmax. All rights reserved.</p>
+            <p style="margin:0;font-size:12px;color:#86868b;">USA &rarr; Ghana Freight Forwarding</p>
           </td>
         </tr>
-
-        <tr><td style="padding:20px 0;text-align:center;">
-          <p style="margin:0;font-size:11px;color:#9ca3af;">PAKKmax &mdash; USA to Ghana Freight Forwarding</p>
-        </td></tr>
 
       </table>
     </td></tr>
@@ -88,10 +75,10 @@ function baseLayout(content: string, previewText = ""): string {
 }
 
 function ctaButton(url: string, label: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 32px;">
     <tr>
-      <td style="border-radius:10px;background-color:#6d28d9;">
-        <a href="${url}" target="_blank" style="display:inline-block;padding:13px 32px;font-size:14px;font-weight:600;color:#fff;text-decoration:none;border-radius:10px;">${label}</a>
+      <td style="border-radius:980px;background-color:#0071e3;">
+        <a href="${url}" target="_blank" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:500;color:#fff;text-decoration:none;border-radius:980px;letter-spacing:-0.2px;">${label}</a>
       </td>
     </tr>
   </table>`;
@@ -102,23 +89,23 @@ function statusPill(status: string): string {
     "Arrived at Transit Warehouse": "#1d4ed8",
     "Shipped to Ghana": "#4338ca",
     "Arrived in Ghana": "#7c3aed",
-    "Sorting": "#d97706",
+    Sorting: "#d97706",
     "Ready for Pickup": "#15803d",
-    "Completed": "#374151",
-    "Pending": "#b45309",
-    "Partial": "#c2410c",
-    "Paid": "#15803d",
+    Completed: "#374151",
+    Pending: "#b45309",
+    Partial: "#c2410c",
+    Paid: "#15803d",
   };
   const bg: Record<string, string> = {
     "Arrived at Transit Warehouse": "#dbeafe",
     "Shipped to Ghana": "#e0e7ff",
     "Arrived in Ghana": "#ede9fe",
-    "Sorting": "#fef3c7",
+    Sorting: "#fef3c7",
     "Ready for Pickup": "#dcfce7",
-    "Completed": "#f3f4f6",
-    "Pending": "#fef3c7",
-    "Partial": "#ffedd5",
-    "Paid": "#dcfce7",
+    Completed: "#f3f4f6",
+    Pending: "#fef3c7",
+    Partial: "#ffedd5",
+    Paid: "#dcfce7",
   };
   const color = colors[status] ?? "#374151";
   const bgColor = bg[status] ?? "#f3f4f6";
@@ -144,7 +131,7 @@ function infoRow(label: string, value: string): string {
 export async function sendWelcomeEmail(
   to: string,
   customerName: string,
-  shippingMark: string
+  shippingMark: string,
 ): Promise<void> {
   const firstName = customerName.split(" ")[0];
   const html = baseLayout(
@@ -175,9 +162,9 @@ export async function sendWelcomeEmail(
           </table>
         </td></tr>
       </table>`,
-    `Welcome to PAKKmax! Your shipping mark is ${shippingMark}`
+    `Welcome to PAKKmax! Your shipping mark is ${shippingMark}`,
   );
-  await sendEmail(to, "Welcome to PAKKmax 🎉 — Here's your shipping mark", html);
+  await sendEmail(to, "Welcome to PAKKmax  — Here's your shipping mark", html);
 }
 
 // ============================================================
@@ -193,9 +180,21 @@ export async function sendInvoiceCreatedEmail(opts: {
   keepupLink?: string;
   notes?: string;
 }): Promise<void> {
-  const { to, customerName, orderRef, invoiceAmount, invoiceDate, itemCount, keepupLink, notes } = opts;
+  const {
+    to,
+    customerName,
+    orderRef,
+    invoiceAmount,
+    invoiceDate,
+    itemCount,
+    keepupLink,
+    notes,
+  } = opts;
   const firstName = customerName.split(" ")[0];
-  const amountStr = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(invoiceAmount);
+  const amountStr = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(invoiceAmount);
 
   const html = baseLayout(
     `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
@@ -225,7 +224,7 @@ export async function sendInvoiceCreatedEmail(opts: {
       ${keepupLink ? ctaButton(keepupLink, "View & Pay Invoice") : ""}
 
       <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;">Have questions? Contact us via WhatsApp and reference <strong>${orderRef}</strong>.</p>`,
-    `Invoice ${orderRef} — ${amountStr} due`
+    `Invoice ${orderRef} — ${amountStr} due`,
   );
   await sendEmail(to, `Invoice ${orderRef} — ${amountStr} due`, html);
 }
@@ -241,7 +240,10 @@ export async function sendPaymentConfirmedEmail(opts: {
 }): Promise<void> {
   const { to, customerName, orderRef, invoiceAmount } = opts;
   const firstName = customerName.split(" ")[0];
-  const amountStr = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(invoiceAmount);
+  const amountStr = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(invoiceAmount);
 
   const html = baseLayout(
     `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
@@ -272,7 +274,7 @@ export async function sendPaymentConfirmedEmail(opts: {
           Your shipment is on its way to Ghana. We'll notify you as your packages progress through the pipeline. 🚢
         </td></tr>
       </table>`,
-    `Payment of ${amountStr} confirmed for ${orderRef}`
+    `Payment of ${amountStr} confirmed for ${orderRef}`,
   );
   await sendEmail(to, `Payment Confirmed — ${orderRef}`, html);
 }
@@ -288,10 +290,14 @@ export async function sendItemStatusEmail(opts: {
   status: string;
   trackingNumber?: string;
 }): Promise<void> {
-  const { to, customerName, itemRef, description, status, trackingNumber } = opts;
+  const { to, customerName, itemRef, description, status, trackingNumber } =
+    opts;
   const firstName = customerName.split(" ")[0];
 
-  const statusMessages: Record<string, { emoji: string; headline: string; body: string }> = {
+  const statusMessages: Record<
+    string,
+    { emoji: string; headline: string; body: string }
+  > = {
     "Arrived at Transit Warehouse": {
       emoji: "📦",
       headline: "Package Arrived at Our Warehouse",
@@ -307,7 +313,7 @@ export async function sendItemStatusEmail(opts: {
       headline: "Package Arrived in Ghana",
       body: "Your package has landed in Ghana and is being processed through our facility.",
     },
-    "Sorting": {
+    Sorting: {
       emoji: "🔍",
       headline: "Package Being Sorted",
       body: "Your package is currently being sorted and prepared for pickup.",
@@ -317,7 +323,7 @@ export async function sendItemStatusEmail(opts: {
       headline: "Your Package is Ready for Pickup!",
       body: "Exciting news! Your package is ready and waiting for you at our Ghana facility. Please come collect it at your convenience.",
     },
-    "Completed": {
+    Completed: {
       emoji: "✅",
       headline: "Package Delivered — All Done!",
       body: "Your package has been successfully delivered. Thanks for shipping with PAKKmax!",
@@ -352,38 +358,55 @@ export async function sendItemStatusEmail(opts: {
           </table>
         </td></tr>
       </table>`,
-    `${msg.emoji} ${status} — ${itemRef}`
+    `${msg.emoji} ${status} — ${itemRef}`,
   );
   await sendEmail(to, `${msg.emoji} ${status} — ${itemRef}`, html);
 }
 
 // ============================================================
-// TEMPLATE 5: Password Reset (for manual trigger)
-// Firebase Auth sends its own reset email automatically.
-// Use this if you build a custom reset flow.
+// TEMPLATE 5: Password Reset
 // ============================================================
 export async function sendPasswordResetEmail(
   to: string,
-  resetUrl: string
+  resetUrl: string,
 ): Promise<void> {
   const html = baseLayout(
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
-        <tr><td style="background-color:#ede9fe;border-radius:50%;width:56px;height:56px;text-align:center;vertical-align:middle;">
-          <span style="font-size:28px;line-height:56px;">🔐</span>
-        </td></tr>
-      </table>
-      <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Reset Your Password</h1>
-      <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4b5563;text-align:center;">We received a request to reset your PAKKmax account password. Click the button below to choose a new one.</p>
-      <p style="margin:0 0 28px;font-size:13px;line-height:1.6;color:#6b7280;text-align:center;">This link expires in <strong style="color:#374151;">1 hour</strong>. If you didn't request this, you can safely ignore this email.</p>
+    `<h1 style="margin:0 0 8px;font-size:28px;font-weight:700;color:#1d1d1f;letter-spacing:-0.5px;">Reset your password.</h1>
+      <p style="margin:0 0 6px;font-size:17px;line-height:1.6;color:#1d1d1f;">We received a request to reset the password for your PAKKmax account.</p>
+      <p style="margin:0 0 32px;font-size:15px;line-height:1.6;color:#86868b;">This link expires in 1 hour. If you didn't request this, you can ignore this email — your account remains secure.</p>
       ${ctaButton(resetUrl, "Reset Password")}
-      <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">Or copy this link: <a href="${resetUrl}" style="color:#6d28d9;word-break:break-all;">${resetUrl}</a></p>`,
-    "Reset your PAKKmax password"
+      <hr style="border:none;border-top:1px solid #e5e5ea;margin:0 0 24px;" />
+      <p style="margin:0;font-size:12px;color:#86868b;line-height:1.6;">If the button above doesn't work, copy and paste this link into your browser:<br/>
+      <a href="${resetUrl}" style="color:#0071e3;word-break:break-all;text-decoration:none;">${resetUrl}</a></p>`,
+    "Reset your PAKKmax password",
   );
-  await sendEmail(to, "Reset Your PAKKmax Password", html);
+  await sendEmail(to, "Reset your PAKKmax password", html);
 }
 
 // ============================================================
-// TEMPLATE 6: Partial Payment Received
+// TEMPLATE 6: Email Verification
+// ============================================================
+export async function sendEmailVerificationEmail(
+  to: string,
+  customerName: string,
+  verifyUrl: string,
+): Promise<void> {
+  const firstName = customerName.split(" ")[0];
+  const html = baseLayout(
+    `<h1 style="margin:0 0 8px;font-size:28px;font-weight:700;color:#1d1d1f;letter-spacing:-0.5px;">Verify your email, ${firstName}.</h1>
+      <p style="margin:0 0 6px;font-size:17px;line-height:1.6;color:#1d1d1f;">You're almost set to start using PAKKmax.</p>
+      <p style="margin:0 0 32px;font-size:15px;line-height:1.6;color:#86868b;">Click the button below to verify your email address and activate your account. This link expires in 48 hours.</p>
+      ${ctaButton(verifyUrl, "Verify Email Address")}
+      <hr style="border:none;border-top:1px solid #e5e5ea;margin:0 0 24px;" />
+      <p style="margin:0;font-size:12px;color:#86868b;line-height:1.6;">If the button above doesn't work, copy and paste this link into your browser:<br/>
+      <a href="${verifyUrl}" style="color:#0071e3;word-break:break-all;text-decoration:none;">${verifyUrl}</a></p>`,
+    "Verify your PAKKmax email address",
+  );
+  await sendEmail(to, "Verify your email address", html);
+}
+
+// ============================================================
+// TEMPLATE 7: Partial Payment Received
 // ============================================================
 export async function sendPartialPaymentEmail(opts: {
   to: string;
@@ -393,9 +416,14 @@ export async function sendPartialPaymentEmail(opts: {
   balanceDue: number;
   keepupLink?: string;
 }): Promise<void> {
-  const { to, customerName, orderRef, amountPaid, balanceDue, keepupLink } = opts;
+  const { to, customerName, orderRef, amountPaid, balanceDue, keepupLink } =
+    opts;
   const firstName = customerName.split(" ")[0];
-  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(n);
 
   const html = baseLayout(
     `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
@@ -421,7 +449,11 @@ export async function sendPartialPaymentEmail(opts: {
       </table>
 
       ${keepupLink ? ctaButton(keepupLink, "Pay Remaining Balance") : ""}`,
-    `Partial payment received for ${orderRef} — ${fmt(balanceDue)} still due`
+    `Partial payment received for ${orderRef} — ${fmt(balanceDue)} still due`,
   );
-  await sendEmail(to, `Partial Payment Received — ${fmt(balanceDue)} Still Due`, html);
+  await sendEmail(
+    to,
+    `Partial Payment Received — ${fmt(balanceDue)} Still Due`,
+    html,
+  );
 }

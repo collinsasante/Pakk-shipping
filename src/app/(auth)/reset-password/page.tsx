@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { resetPassword } from "@/lib/firebase";
+import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
     setError("");
     try {
-      await resetPassword(email);
+      await axios.post("/api/auth/reset-password", { email });
       setSent(true);
       startCooldown();
     } catch (err: unknown) {

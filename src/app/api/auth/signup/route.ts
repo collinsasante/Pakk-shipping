@@ -5,9 +5,9 @@
 //   2. Google          — Firebase user already exists, just creates Airtable records
 import { NextRequest } from "next/server";
 import { customersApi, usersApi } from "@/lib/airtable";
-import { createFirebaseUser, verifyIdToken, setCustomClaims } from "@/lib/firebase-admin";
+import { createFirebaseUser, verifyIdToken, setCustomClaims, generateEmailVerificationLink } from "@/lib/firebase-admin";
 import { serverErrorResponse, badRequestResponse } from "@/lib/auth";
-import { sendWelcomeEmail } from "@/lib/email";
+import { sendWelcomeEmail, sendEmailVerificationEmail } from "@/lib/email";
 import { checkRateLimit, rateLimitedResponse, getClientIp, checkBodySize } from "@/lib/rate-limit";
 import { z } from "zod";
 
@@ -138,8 +138,14 @@ export async function POST(request: NextRequest) {
       // setCustomClaims failed (non-fatal)
     }
 
-    // Send welcome email (non-fatal)
-    sendWelcomeEmail(email, customer.name, customer.shippingMark).catch(() => {});
+    // Send email verification (email/password flow) or welcome email (Google flow)
+    if (data.flow === "email") {
+      generateEmailVerificationLink(email)
+        .then((verifyUrl) => sendEmailVerificationEmail(email, customer.name, verifyUrl))
+        .catch(() => {});
+    } else {
+      sendWelcomeEmail(email, customer.name, customer.shippingMark).catch(() => {});
+    }
 
     return Response.json(
       {
