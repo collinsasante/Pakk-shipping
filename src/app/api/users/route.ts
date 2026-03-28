@@ -2,7 +2,8 @@
 // POST /api/users  — create user account (super_admin only)
 import { NextRequest } from "next/server";
 import { usersApi } from "@/lib/airtable";
-import { createFirebaseUser, deleteFirebaseUser, setCustomClaims, sendPasswordResetEmail } from "@/lib/firebase-admin";
+import { createFirebaseUser, deleteFirebaseUser, setCustomClaims, generatePasswordResetLink } from "@/lib/firebase-admin";
+import { sendPasswordResetEmail } from "@/lib/email";
 import {
   requireAuth,
   serverErrorResponse,
@@ -89,7 +90,8 @@ export async function POST(request: NextRequest) {
     // 4. Send password-setup email (non-fatal)
     let emailSent = false;
     try {
-      await sendPasswordResetEmail(email);
+      const resetUrl = await generatePasswordResetLink(email);
+      await sendPasswordResetEmail(email, resetUrl);
       emailSent = true;
     } catch {
       // sendPasswordResetEmail failed (non-fatal)
