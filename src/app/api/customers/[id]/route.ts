@@ -2,7 +2,8 @@
 // PATCH  /api/customers/[id]  — update customer
 // DELETE /api/customers/[id]  — deactivate customer
 import { NextRequest } from "next/server";
-import { customersApi, itemsApi, ordersApi } from "@/lib/airtable";
+import { customersApi, itemsApi, ordersApi, usersApi } from "@/lib/airtable";
+import { deleteFirebaseUser } from "@/lib/firebase-admin";
 import {
   requireAuth,
   serverErrorResponse,
@@ -118,17 +119,29 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/customers/[id] — hard delete customer record
+// DELETE /api/customers/[id] — hard delete customer from Airtable + Firebase
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const authResult = await requireAuth(request, ["super_admin"]);
   if (authResult instanceof Response) return authResult;
-  const { user } = authResult;
 
   try {
     const { id } = await params;
+
+    // Get customer to find Firebase UID
+    const customer = await customersApi.getById(id);
+
+    // Delete Firebase user (non-fatal if not found)
+    if (customer.firebaseUid) {
+      await deleteFirebaseUser(customer.firebaseUid).catch(() => {});
+    }
+
+    // Delete user record from Airtable Users table (non-fatal)
+    await usersApi.deleteByCustomerId(id).catch(() => {});
+
+    // Delete customer from Airtable
     await customersApi.delete(id);
 
     return Response.json({

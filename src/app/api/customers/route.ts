@@ -3,7 +3,7 @@
 import { NextRequest } from "next/server";
 import { customersApi, usersApi } from "@/lib/airtable";
 import { createFirebaseUser, setCustomClaims, generatePasswordResetLink } from "@/lib/firebase-admin";
-import { sendPasswordResetEmail } from "@/lib/email";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "@/lib/email";
 import {
   requireAuth,
   serverErrorResponse,
@@ -127,9 +127,10 @@ export async function POST(request: NextRequest) {
     // 5. Set Firebase custom claims (no-op, non-fatal)
     setCustomClaims(firebaseUser.uid, { role: "customer", customerId: customer.id }).catch(() => {});
 
-    // 6. Generate reset link and send custom HTML password-setup email (non-fatal)
+    // 6. Send welcome email + password setup link (non-fatal)
     let emailSent = false;
     try {
+      await sendWelcomeEmail(email, name, customer.shippingMark);
       const resetUrl = await generatePasswordResetLink(email);
       await sendPasswordResetEmail(email, resetUrl);
       emailSent = true;

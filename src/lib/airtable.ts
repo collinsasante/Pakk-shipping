@@ -1261,6 +1261,11 @@ export const usersApi = {
   async delete(id: string): Promise<void> {
     await deleteRecord(TABLES.USERS, id);
   },
+
+  async deleteByCustomerId(customerId: string): Promise<void> {
+    const records = await getAllRecords(TABLES.USERS, `FIND('${escapeFormula(customerId)}', ARRAYJOIN({CustomerRecord}))`);
+    await Promise.all(records.map((r) => deleteRecord(TABLES.USERS, r.id)));
+  },
 };
 
 // ============================================================

@@ -63,7 +63,7 @@ function baseLayout(content: string, previewText = ""): string {
         <tr>
           <td style="padding:28px 0 0;text-align:center;">
             <p style="margin:0 0 6px;font-size:12px;color:#86868b;line-height:1.6;">Copyright &copy; ${new Date().getFullYear()} PAKKmax. All rights reserved.</p>
-            <p style="margin:0;font-size:12px;color:#86868b;">USA &rarr; Ghana Freight Forwarding</p>
+            <p style="margin:0;font-size:12px;color:#86868b;">China &rarr; Ghana Freight Forwarding</p>
           </td>
         </tr>
 
