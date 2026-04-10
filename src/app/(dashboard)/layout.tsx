@@ -34,7 +34,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   }, [appUser?.role, appUser?.preferredWarehouseId]);
 
   const shippingMark = appUser?.shippingMark ?? "";
-  const fullAddress = warehouseAddress ? `${warehouseAddress} (${shippingMark})` : shippingMark;
+  const fullAddress = warehouseAddress
+    ? `${warehouseAddress}${shippingMark ? ` (${shippingMark})` : ""}`
+    : shippingMark;
 
   const copyMark = () => {
     if (!shippingMark) return;

@@ -95,11 +95,17 @@ export function CustomerSidebar() {
       {/* Shipping Mark Card */}
       <div className="mx-4 mt-4 p-3 bg-brand-50 border border-brand-100 rounded-xl shrink-0">
         <p className="text-xs text-brand-600 font-medium mb-1">Your Shipping Address</p>
+        {appUser?.customerName && (
+          <p className="text-xs font-semibold text-brand-900 mb-0.5">{appUser.customerName}</p>
+        )}
+        {appUser?.phone && (
+          <p className="text-xs text-brand-700 mb-1">{appUser.phone}</p>
+        )}
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <code className="text-xs font-mono font-bold text-brand-800 break-all leading-relaxed">
               {warehouseAddress
-                ? `${warehouseAddress} (${shippingMark})`
+                ? `${warehouseAddress}${shippingMark ? ` (${shippingMark})` : ""}`
                 : (shippingMark || "Loading...")}
             </code>
           </div>

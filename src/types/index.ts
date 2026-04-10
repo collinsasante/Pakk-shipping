@@ -291,6 +291,7 @@ export interface AppUser {
   role: UserRole;
   customerId?: string; // Only for customers
   customerName?: string;
+  phone?: string;
   shippingMark?: string;
   shippingAddress?: string;
   package?: CustomerPackage;

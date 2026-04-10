@@ -214,7 +214,7 @@ function mapCustomer(record: AirtableRecord<FieldSet>): Customer {
     exchangeRate: (f["ExchangeRate"] as number) ?? undefined,
     notes: (f["Notes"] as string) ?? undefined,
     preferredWarehouseId: (f["PreferredWarehouse"] as string) ?? undefined,
-    createdAt: (f["CreatedAt"] as string) ?? toISOString(),
+    createdAt: (f["CreatedAt"] as string) ?? "",
   };
 }
 
@@ -338,7 +338,7 @@ function mapUser(record: AirtableRecord<FieldSet>): AppUser {
     role: (f["Role"] as UserRole) ?? "customer",
     customerId: ((f["CustomerRecord"] as string[]) ?? [])[0] ?? undefined,
     customerName: (Array.isArray(rawName) ? rawName[0] : rawName) as string | undefined,
-    createdAt: (f["CreatedAt"] as string) ?? toISOString(),
+    createdAt: (f["CreatedAt"] as string) ?? "",
     lastLogin: (f["LastLogin"] as string) ?? undefined,
   };
 }
@@ -1212,6 +1212,7 @@ export const usersApi = {
       customerName: user.customerName ?? customer.name,
       shippingMark: customer.shippingMark,
       shippingAddress: customer.shippingAddress,
+      phone: customer.phone,
       package: customer.package,
       preferredWarehouseId: customer.preferredWarehouseId,
     };
@@ -1602,7 +1603,7 @@ function mapWarehouse(record: AirtableRecord<FieldSet>): Warehouse {
     country: (f["Country"] as string) ?? undefined,
     phone: (f["Phone"] as string) ?? undefined,
     isActive: (f["IsActive"] as boolean) ?? true,
-    createdAt: (f["CreatedAt"] as string) ?? toISOString(),
+    createdAt: (f["CreatedAt"] as string) ?? "",
   };
 }
 

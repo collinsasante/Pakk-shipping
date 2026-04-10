@@ -135,13 +135,8 @@ export async function sendWelcomeEmail(
 ): Promise<void> {
   const firstName = customerName.split(" ")[0];
   const html = baseLayout(
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
-        <tr><td style="background-color:#ede9fe;border-radius:50%;width:56px;height:56px;text-align:center;vertical-align:middle;">
-          <span style="font-size:28px;line-height:56px;">🎉</span>
-        </td></tr>
-      </table>
-      <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Welcome to PAKKmax, ${firstName}!</h1>
-      <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#4b5563;text-align:center;">Your account is ready. Here's your unique shipping mark — use it on every package you send to our warehouse in the USA.</p>
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Welcome to PAKKmax, ${firstName}!</h1>
+      <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#4b5563;text-align:center;">Your account is ready. Here's your unique shipping mark — use it on every package you send to our warehouse in China.</p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
         <tr><td style="background-color:#f5f3ff;border:2px dashed #8b5cf6;border-radius:12px;padding:20px;text-align:center;">
@@ -155,10 +150,10 @@ export async function sendWelcomeEmail(
         <tr><td>
           <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#374151;">How it works:</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">📦 &nbsp;Write your shipping mark on each package</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">✈️ &nbsp;Ship to our USA warehouse address</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">📍 &nbsp;We receive, log, and ship to Ghana</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">🔔 &nbsp;Track your packages on your dashboard</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">Write your shipping mark on each package</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">Ship to our China warehouse address</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">We receive, log, and ship to Ghana</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">Track your packages on your dashboard</td></tr>
           </table>
         </td></tr>
       </table>`,
@@ -301,7 +296,7 @@ export async function sendItemStatusEmail(opts: {
     "Arrived at Transit Warehouse": {
       emoji: "📦",
       headline: "Package Arrived at Our Warehouse",
-      body: "Great news! Your package has arrived at our USA transit warehouse. We've logged it and it'll be shipped to Ghana soon.",
+      body: "Great news! Your package has arrived at our China transit warehouse. We've logged it and it'll be shipped to Ghana soon.",
     },
     "Shipped to Ghana": {
       emoji: "🚢",
