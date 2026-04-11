@@ -3,7 +3,7 @@
 // DELETE /api/customers/[id]  — deactivate customer
 import { NextRequest } from "next/server";
 import { customersApi, itemsApi, ordersApi, usersApi } from "@/lib/airtable";
-import { deleteFirebaseUser } from "@/lib/firebase-admin";
+import { deleteFirebaseUser, getFirebaseUserByEmail } from "@/lib/firebase-admin";
 import {
   requireAuth,
   serverErrorResponse,
@@ -133,9 +133,16 @@ export async function DELETE(
     // Get customer to find Firebase UID
     const customer = await customersApi.getById(id);
 
+    // Resolve Firebase UID — use stored value or fall back to email lookup
+    let firebaseUid = customer.firebaseUid;
+    if (!firebaseUid && customer.email) {
+      const fbUser = await getFirebaseUserByEmail(customer.email).catch(() => null);
+      firebaseUid = fbUser?.localId;
+    }
+
     // Delete Firebase user (non-fatal if not found)
-    if (customer.firebaseUid) {
-      await deleteFirebaseUser(customer.firebaseUid).catch(() => {});
+    if (firebaseUid) {
+      await deleteFirebaseUser(firebaseUid).catch(() => {});
     }
 
     // Delete user record from Airtable Users table (non-fatal)

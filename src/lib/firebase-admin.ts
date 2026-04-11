@@ -148,6 +148,21 @@ export async function deleteFirebaseUser(uid: string) {
   }
 }
 
+export async function getFirebaseUserByEmail(email: string): Promise<{ localId: string; email: string } | null> {
+  const token = await getAdminToken();
+  const resp = await fetch(`${getBaseUrl()}/accounts:lookup`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email: [email] }),
+  });
+  if (!resp.ok) return null;
+  const data = (await resp.json()) as { users?: Array<{ localId: string; email: string }> };
+  return data.users?.[0] ?? null;
+}
+
 export async function getFirebaseUser(uid: string) {
   const token = await getAdminToken();
   const resp = await fetch(`${getBaseUrl()}/accounts:lookup`, {
