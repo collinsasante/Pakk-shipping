@@ -150,10 +150,10 @@ export async function sendWelcomeEmail(
         <tr><td>
           <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#374151;">How it works:</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">Write your shipping mark on each package</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">Ship to our China warehouse address</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">We receive, log, and ship to Ghana</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">Track your packages on your dashboard</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">1. Write your shipping mark on each package</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">2. Ship to our China warehouse address</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">3. We receive, log, and ship to Ghana</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#4b5563;">4. Track your packages on your dashboard</td></tr>
           </table>
         </td></tr>
       </table>`,
@@ -192,12 +192,7 @@ export async function sendInvoiceCreatedEmail(opts: {
   }).format(invoiceAmount);
 
   const html = baseLayout(
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
-        <tr><td style="background-color:#fef3c7;border-radius:50%;width:56px;height:56px;text-align:center;vertical-align:middle;">
-          <span style="font-size:28px;line-height:56px;">🧾</span>
-        </td></tr>
-      </table>
-      <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Invoice Ready</h1>
+    `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Invoice Ready</h1>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#4b5563;text-align:center;">Hi ${firstName}, an invoice has been created for your shipment. Please review and complete payment at your earliest convenience.</p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
@@ -241,12 +236,7 @@ export async function sendPaymentConfirmedEmail(opts: {
   }).format(invoiceAmount);
 
   const html = baseLayout(
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
-        <tr><td style="background-color:#dcfce7;border-radius:50%;width:56px;height:56px;text-align:center;vertical-align:middle;">
-          <span style="font-size:28px;line-height:56px;">✅</span>
-        </td></tr>
-      </table>
-      <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Payment Confirmed</h1>
+    `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Payment Confirmed</h1>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#4b5563;text-align:center;">Hi ${firstName}, we've received your payment. Thank you!</p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
@@ -266,7 +256,7 @@ export async function sendPaymentConfirmedEmail(opts: {
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;background-color:#f0fdf4;border-radius:10px;padding:16px;">
         <tr><td style="font-size:13px;color:#166534;text-align:center;">
-          Your shipment is on its way to Ghana. We'll notify you as your packages progress through the pipeline. 🚢
+          Your shipment is on its way to Ghana. We'll notify you as your packages progress through the pipeline.
         </td></tr>
       </table>`,
     `Payment of ${amountStr} confirmed for ${orderRef}`,
@@ -289,55 +279,40 @@ export async function sendItemStatusEmail(opts: {
     opts;
   const firstName = customerName.split(" ")[0];
 
-  const statusMessages: Record<
-    string,
-    { emoji: string; headline: string; body: string }
-  > = {
+  const statusMessages: Record<string, { headline: string; body: string }> = {
     "Arrived at Transit Warehouse": {
-      emoji: "📦",
       headline: "Package Arrived at Our Warehouse",
-      body: "Great news! Your package has arrived at our China transit warehouse. We've logged it and it'll be shipped to Ghana soon.",
+      body: "Your package has arrived at our China transit warehouse. We've logged it and it will be shipped to Ghana soon.",
     },
     "Shipped to Ghana": {
-      emoji: "🚢",
-      headline: "Your Package is on Its Way to Ghana!",
-      body: "Your package has been loaded and is now en route to Ghana. Estimated arrival is 4–6 weeks.",
+      headline: "Your Package is on Its Way to Ghana",
+      body: "Your package has been loaded and is now en route to Ghana. Estimated arrival is 4-6 weeks.",
     },
     "Arrived in Ghana": {
-      emoji: "🇬🇭",
       headline: "Package Arrived in Ghana",
       body: "Your package has landed in Ghana and is being processed through our facility.",
     },
     Sorting: {
-      emoji: "🔍",
       headline: "Package Being Sorted",
       body: "Your package is currently being sorted and prepared for pickup.",
     },
     "Ready for Pickup": {
-      emoji: "🎁",
-      headline: "Your Package is Ready for Pickup!",
-      body: "Exciting news! Your package is ready and waiting for you at our Ghana facility. Please come collect it at your convenience.",
+      headline: "Your Package is Ready for Pickup",
+      body: "Your package is ready and waiting for you at our Ghana facility. Please come collect it at your convenience.",
     },
     Completed: {
-      emoji: "✅",
-      headline: "Package Delivered — All Done!",
+      headline: "Package Delivered",
       body: "Your package has been successfully delivered. Thanks for shipping with PAKKmax!",
     },
   };
 
   const msg = statusMessages[status] ?? {
-    emoji: "📦",
     headline: `Package Status: ${status}`,
     body: `Your package status has been updated to: ${status}.`,
   };
 
   const html = baseLayout(
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
-        <tr><td style="background-color:#ede9fe;border-radius:50%;width:56px;height:56px;text-align:center;vertical-align:middle;">
-          <span style="font-size:28px;line-height:56px;">${msg.emoji}</span>
-        </td></tr>
-      </table>
-      <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">${msg.headline}</h1>
+    `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">${msg.headline}</h1>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#4b5563;text-align:center;">Hi ${firstName}, ${msg.body}</p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
@@ -353,9 +328,9 @@ export async function sendItemStatusEmail(opts: {
           </table>
         </td></tr>
       </table>`,
-    `${msg.emoji} ${status} — ${itemRef}`,
+    `${status} — ${itemRef}`,
   );
-  await sendEmail(to, `${msg.emoji} ${status} — ${itemRef}`, html);
+  await sendEmail(to, `${status} — ${itemRef}`, html);
 }
 
 // ============================================================
@@ -421,12 +396,7 @@ export async function sendPartialPaymentEmail(opts: {
     }).format(n);
 
   const html = baseLayout(
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
-        <tr><td style="background-color:#ffedd5;border-radius:50%;width:56px;height:56px;text-align:center;vertical-align:middle;">
-          <span style="font-size:28px;line-height:56px;">🧩</span>
-        </td></tr>
-      </table>
-      <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Partial Payment Received</h1>
+    `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Partial Payment Received</h1>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#4b5563;text-align:center;">Hi ${firstName}, we've received a partial payment for invoice <strong>${orderRef}</strong>. Please complete the remaining balance.</p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">

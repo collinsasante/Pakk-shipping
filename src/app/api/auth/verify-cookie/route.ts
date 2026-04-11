@@ -11,11 +11,14 @@ export async function GET(request: NextRequest) {
     }
 
     const decoded = await verifyIdToken(token);
-    const user = await usersApi.getByFirebaseUid(decoded.uid);
+    let user = await usersApi.getByFirebaseUid(decoded.uid);
 
     if (!user) {
       return Response.json({ success: false }, { status: 401 });
     }
+
+    // Enrich customer users with name/phone/shippingMark from Customers table
+    user = await usersApi.enrichCustomerUser(user).catch(() => user!);
 
     return Response.json({
       success: true,
