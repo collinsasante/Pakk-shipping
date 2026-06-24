@@ -20,6 +20,14 @@ export async function POST(
       ordersApi.getById(id),
       settingsApi.get(),
     ]);
+
+    if (order.status === "Paid") {
+      return Response.json(
+        { success: false, error: "Cannot create invoice for a paid order" },
+        { status: 400 }
+      );
+    }
+
     const usdToGhs = appSettings?.usdToGhs && appSettings.usdToGhs > 0 ? appSettings.usdToGhs : 1;
     // Invoice amount in GHS (what Keepup should bill the customer)
     const invoiceAmountGhs = Math.round(order.invoiceAmount * usdToGhs * 100) / 100;
@@ -28,13 +36,6 @@ export async function POST(
     if (order.keepupSaleId) {
       await cancelKeepupSale(order.keepupSaleId).catch(() => {});
       await ordersApi.clearKeepupIds(order.id);
-    }
-
-    if (order.status === "Paid") {
-      return Response.json(
-        { success: false, error: "Cannot create invoice for a paid order" },
-        { status: 400 }
-      );
     }
 
     const [customer, items] = await Promise.all([

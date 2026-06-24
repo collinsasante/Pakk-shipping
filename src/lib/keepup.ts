@@ -64,19 +64,6 @@ export async function createKeepupSale(
   dueDateObj.setDate(dueDateObj.getDate() + 30);
   const dueDate = toKeepupDate(dueDateObj.toISOString());
 
-  // Normalize phone to international format if possible
-  let normalizedPhone: string | undefined;
-  if (params.customerPhone) {
-    const digits = params.customerPhone.replace(/\D/g, "");
-    if (digits.startsWith("233") && digits.length >= 12) {
-      normalizedPhone = `+${digits}`;
-    } else if (digits.startsWith("0") && digits.length === 10) {
-      normalizedPhone = `+233${digits.slice(1)}`;
-    } else if (digits.length >= 10) {
-      normalizedPhone = `+${digits}`;
-    }
-  }
-
   const body: Record<string, unknown> = {
     items: JSON.stringify(itemsWithIds),
     payment_type: "bank_transfer",
@@ -87,7 +74,7 @@ export async function createKeepupSale(
   };
   if (params.customerName) body.customer_name = params.customerName;
   if (params.customerEmail && params.customerEmail.includes("@")) body.customer_email = params.customerEmail;
-  if (normalizedPhone) body.phone_number = normalizedPhone;
+  // phone_number omitted — Keepup format validation rejects Ghanaian numbers
 
   const res = await fetch(`${BASE}/sales/add`, {
     method: "POST",
