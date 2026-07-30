@@ -18,6 +18,7 @@ import {
   Warehouse,
   Copy,
   CheckCheck,
+  PackageSearch,
 } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
@@ -33,6 +34,7 @@ const PACKAGE_LABELS: Record<CustomerPackage, string> = {
 const navItems = [
   { href: "/customer", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/customer/items", label: "My Items", icon: Package },
+  { href: "/customer/sourcing", label: "Sourcing", icon: PackageSearch },
   { href: "/customer/orders", label: "My Invoices", icon: ShoppingCart },
   { href: "/customer/tracking", label: "Tracking", icon: MapPin },
   { href: "/customer/addresses", label: "Addresses", icon: Warehouse },

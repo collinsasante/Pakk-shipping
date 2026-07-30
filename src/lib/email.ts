@@ -220,6 +220,53 @@ export async function sendInvoiceCreatedEmail(opts: {
 }
 
 // ============================================================
+// TEMPLATE: Sourcing Quote Ready
+// ============================================================
+export async function sendQuoteReadyEmail(opts: {
+  to: string;
+  customerName: string;
+  requestRef: string;
+  productName: string;
+  quantity: number;
+  quotedUnitPriceUsd: number;
+  quotedTotalUsd: number;
+}): Promise<void> {
+  const { to, customerName, requestRef, productName, quantity, quotedUnitPriceUsd, quotedTotalUsd } = opts;
+  const firstName = customerName.split(" ")[0];
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+  const portalUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/customer/sourcing`
+    : undefined;
+
+  const html = baseLayout(
+    `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Your Quote Is Ready</h1>
+      <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#4b5563;text-align:center;">Hi ${firstName}, we found a price for the item you asked us to source. Review the quote and approve it to move forward.</p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+        <tr><td style="background-color:#6d28d9;padding:14px 20px;">
+          <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.5px;">Request Reference</p>
+          <p style="margin:4px 0 0;font-size:18px;font-weight:800;color:#fff;font-family:monospace;">${requestRef}</p>
+        </td></tr>
+        <tr><td style="padding:0 20px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${infoRow("Item", productName)}
+            ${infoRow("Quantity", String(quantity))}
+            ${infoRow("Unit Price", fmt(quotedUnitPriceUsd))}
+            ${infoRow("Total", `<span style="font-size:18px;font-weight:800;color:#6d28d9;">${fmt(quotedTotalUsd)}</span>`)}
+          </table>
+        </td></tr>
+      </table>
+
+      ${portalUrl ? ctaButton(portalUrl, "Review Quote") : ""}
+
+      <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;">Have questions? Contact us via WhatsApp and reference <strong>${requestRef}</strong>.</p>`,
+    `Quote ready for ${requestRef}`,
+  );
+  await sendEmail(to, `Your quote for ${requestRef} is ready`, html);
+}
+
+// ============================================================
 // TEMPLATE 3: Payment Confirmed
 // ============================================================
 export async function sendPaymentConfirmedEmail(opts: {

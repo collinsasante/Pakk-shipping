@@ -45,6 +45,16 @@ export function generateSupplierId(sequenceNumber: number): string {
   return `SUP-${padded}`;
 }
 
+export function generateCatalogId(sequenceNumber: number): string {
+  const padded = String(sequenceNumber).padStart(4, "0");
+  return `CAT-${padded}`;
+}
+
+export function generateRequestRef(sequenceNumber: number): string {
+  const padded = String(sequenceNumber).padStart(4, "0");
+  return `SRC-${padded}`;
+}
+
 // ---- Date Formatting ----
 export function formatDate(dateStr: string | undefined | null): string {
   if (!dateStr) return "N/A";
@@ -105,6 +115,12 @@ export function getStatusColor(status: ItemStatus | string): string {
     inactive: "bg-red-100 text-red-800 border-red-200",
     Active: "bg-green-100 text-green-800 border-green-200",
     Inactive: "bg-red-100 text-red-800 border-red-200",
+    // SourcingRequest
+    Requested: "bg-blue-100 text-blue-800 border-blue-200",
+    Quoted: "bg-amber-100 text-amber-800 border-amber-200",
+    Approved: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    Declined: "bg-red-100 text-red-800 border-red-200",
+    Converted: "bg-gray-100 text-gray-700 border-gray-200",
   };
   return map[status] ?? "bg-gray-100 text-gray-600 border-gray-200";
 }

@@ -29,6 +29,15 @@ import type {
   UpdateSupplierInput,
   Warehouse,
   CreateWarehouseInput,
+  ProductCatalogEntry,
+  CreateProductCatalogInput,
+  UpdateProductCatalogInput,
+  SourcingRequest,
+  SourcingRequestStatus,
+  CreateSourcingRequestInput,
+  QuoteSourcingRequestInput,
+  RespondSourcingRequestInput,
+  SourcingRequestFilterParams,
 } from "@/types";
 import {
   generateShippingMark,
@@ -37,6 +46,8 @@ import {
   generateOrderRef,
   generateItemRef,
   generateSupplierId,
+  generateCatalogId,
+  generateRequestRef,
   toISOString,
   buildWhatsAppMessage,
 } from "./utils";
@@ -93,6 +104,8 @@ export const TABLES = {
   SPECIAL_RATES: "SpecialRates",
   PACKAGE_RATES: "PackageRates",
   SETTINGS: "Settings",
+  PRODUCT_CATALOG: "ProductCatalog",
+  SOURCING_REQUESTS: "SourcingRequests",
 } as const;
 
 // ============================================================
@@ -253,6 +266,7 @@ function mapItem(record: AirtableRecord<FieldSet>): Item {
     isSpecialItem: (f["IsSpecialItem"] as boolean) ?? undefined,
     specialRateName: (f["specialRateName"] as string) ?? undefined,
     notes: (f["Notes"] as string) ?? undefined,
+    sourcingRequestId: ((f["SourcingRequest"] as string[]) ?? [])[0] ?? undefined,
     createdAt: (f["CreatedAt"] as string) ?? toISOString(),
     createdBy: (f["CreatedBy"] as string) ?? undefined,
   };
@@ -301,7 +315,8 @@ function mapStatusHistory(record: AirtableRecord<FieldSet>): StatusHistory {
   const f = record.fields;
   return {
     id: record.id,
-    recordType: (f["RecordType"] as "Item" | "Container" | "Order") ?? "Item",
+    recordType:
+      (f["RecordType"] as "Item" | "Container" | "Order" | "SourcingRequest") ?? "Item",
     recordId: (f["RecordID"] as string) ?? "",
     recordRef: (f["RecordRef"] as string) ?? "",
     previousStatus: (f["PreviousStatus"] as string) ?? "",
@@ -600,6 +615,7 @@ export const itemsApi = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fields["Photos"] = input.photoUrls.map((url) => ({ url })) as any;
     }
+    if (input.sourcingRequestId) fields["SourcingRequest"] = [input.sourcingRequestId];
 
     // Create with core fields first (guaranteed safe)
     const record = await createRecord(TABLES.ITEMS, fields);
@@ -1793,6 +1809,404 @@ export const settingsApi = {
         ShippingRatePerCbm: settings.shippingRatePerCbm,
       });
     }
+  },
+};
+
+// ============================================================
+// PRODUCT CATALOG API
+// ============================================================
+function mapProductCatalog(record: AirtableRecord<FieldSet>): ProductCatalogEntry {
+  const f = record.fields;
+  const referenceImages = ((f["ReferenceImages"] as unknown as { url: string }[]) ?? []).map(
+    (p) => p.url
+  );
+  return {
+    id: record.id,
+    catalogId: (f["CatalogID"] as string) ?? record.id,
+    productName: (f["ProductName"] as string) ?? "",
+    description: (f["Description"] as string) ?? undefined,
+    referenceImages,
+    baseCost: (f["BaseCost"] as number) ?? undefined,
+    supplierId: ((f["Supplier"] as string[]) ?? [])[0] ?? undefined,
+    supplierName: (Array.isArray(f["SupplierName"])
+      ? (f["SupplierName"] as string[])[0]
+      : (f["SupplierName"] as string)) ?? undefined,
+    materialSpecs: (f["MaterialSpecs"] as string) ?? undefined,
+    createdAt: (f["CreatedAt"] as string) ?? toISOString(),
+    createdBy: (f["CreatedBy"] as string) ?? undefined,
+  };
+}
+
+async function resolveCatalogSupplierNames(
+  entries: ProductCatalogEntry[]
+): Promise<ProductCatalogEntry[]> {
+  if (!entries.some((e) => e.supplierId && !e.supplierName)) return entries;
+  const allSuppliers = await suppliersApi.list();
+  const supplierMap = new Map(allSuppliers.map((s) => [s.id, s]));
+  return entries.map((e) => ({
+    ...e,
+    supplierName: e.supplierName ?? (e.supplierId ? supplierMap.get(e.supplierId)?.name : undefined),
+  }));
+}
+
+export const productCatalogApi = {
+  async list(search?: string): Promise<ProductCatalogEntry[]> {
+    let formula: string | undefined;
+    if (search) {
+      const s = escapeFormula(search.toLowerCase());
+      formula = `OR(SEARCH('${s}', LOWER({ProductName})), SEARCH('${s}', LOWER({Description})))`;
+    }
+    const records = await getAllRecords(TABLES.PRODUCT_CATALOG, formula, [
+      { field: "CreatedAt", direction: "desc" },
+    ]);
+    return resolveCatalogSupplierNames(records.map(mapProductCatalog));
+  },
+
+  async getById(id: string): Promise<ProductCatalogEntry> {
+    const record = await getRecord(TABLES.PRODUCT_CATALOG, id);
+    const [entry] = await resolveCatalogSupplierNames([mapProductCatalog(record)]);
+    return entry;
+  },
+
+  async create(
+    input: CreateProductCatalogInput,
+    createdByEmail: string
+  ): Promise<ProductCatalogEntry> {
+    const count = await countRecords(TABLES.PRODUCT_CATALOG);
+    const catalogId = generateCatalogId(count + 1);
+
+    const fields: FieldSet = {
+      CatalogID: catalogId,
+      ProductName: input.productName,
+      CreatedBy: createdByEmail,
+      CreatedAt: toISOString(),
+    };
+    if (input.description) fields["Description"] = input.description;
+    if (input.baseCost !== undefined) fields["BaseCost"] = input.baseCost;
+    if (input.supplierId) fields["Supplier"] = [input.supplierId];
+    if (input.materialSpecs) fields["MaterialSpecs"] = input.materialSpecs;
+    if (input.referenceImages && input.referenceImages.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fields["ReferenceImages"] = input.referenceImages.map((url) => ({ url })) as any;
+    }
+
+    const record = await createRecord(TABLES.PRODUCT_CATALOG, fields);
+    return mapProductCatalog(record);
+  },
+
+  async update(
+    id: string,
+    input: UpdateProductCatalogInput
+  ): Promise<ProductCatalogEntry> {
+    const fields: FieldSet = {};
+    if (input.productName !== undefined) fields["ProductName"] = input.productName;
+    if (input.description !== undefined) fields["Description"] = input.description;
+    if (input.baseCost !== undefined) fields["BaseCost"] = input.baseCost;
+    if (input.supplierId !== undefined) fields["Supplier"] = [input.supplierId];
+    if (input.materialSpecs !== undefined) fields["MaterialSpecs"] = input.materialSpecs;
+    if (input.referenceImages !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fields["ReferenceImages"] = input.referenceImages.map((url) => ({ url })) as any;
+    }
+
+    const record = await updateRecord(TABLES.PRODUCT_CATALOG, id, fields);
+    return mapProductCatalog(record);
+  },
+
+  async delete(id: string): Promise<void> {
+    await deleteRecord(TABLES.PRODUCT_CATALOG, id);
+  },
+};
+
+// ============================================================
+// SOURCING REQUESTS API
+// ============================================================
+function mapSourcingRequest(record: AirtableRecord<FieldSet>): SourcingRequest {
+  const f = record.fields;
+  const photos = ((f["Photos"] as unknown as { url: string }[]) ?? []).map((p) => p.url);
+  return {
+    id: record.id,
+    requestRef: (f["RequestRef"] as string) ?? record.id,
+    customerId: ((f["Customer"] as string[]) ?? [])[0] ?? "",
+    customerName: (Array.isArray(f["CustomerName"])
+      ? (f["CustomerName"] as string[])[0]
+      : (f["CustomerName"] as string)) ?? undefined,
+    photos,
+    description: (f["Description"] as string) ?? "",
+    quantity: (f["Quantity"] as number) ?? 1,
+    status: ((f["Status"] as string) ?? "Requested") as SourcingRequestStatus,
+    catalogId: ((f["ProductCatalog"] as string[]) ?? [])[0] ?? undefined,
+    catalogProductName: (Array.isArray(f["CatalogProductName"])
+      ? (f["CatalogProductName"] as string[])[0]
+      : (f["CatalogProductName"] as string)) ?? undefined,
+    quotedUnitPriceUsd: (f["QuotedUnitPriceUsd"] as number) ?? undefined,
+    quotedTotalUsd: (f["QuotedTotalUsd"] as number) ?? undefined,
+    quoteNotes: (f["QuoteNotes"] as string) ?? undefined,
+    declineReason: (f["DeclineReason"] as string) ?? undefined,
+    notes: (f["Notes"] as string) ?? undefined,
+    itemId: ((f["Item"] as string[]) ?? [])[0] ?? undefined,
+    createdAt: (f["CreatedAt"] as string) ?? toISOString(),
+    createdBy: (f["CreatedBy"] as string) ?? undefined,
+    quotedAt: (f["QuotedAt"] as string) ?? undefined,
+    respondedAt: (f["RespondedAt"] as string) ?? undefined,
+  };
+}
+
+async function resolveSourcingRequestNames(
+  requests: SourcingRequest[]
+): Promise<SourcingRequest[]> {
+  const needsCustomer = requests.some((r) => r.customerId && !r.customerName);
+  const needsCatalog = requests.some((r) => r.catalogId && !r.catalogProductName);
+  if (!needsCustomer && !needsCatalog) return requests;
+
+  const [allCustomers, allCatalog] = await Promise.all([
+    needsCustomer ? customersApi.list() : Promise.resolve([]),
+    needsCatalog ? productCatalogApi.list() : Promise.resolve([]),
+  ]);
+  const customerMap = new Map(allCustomers.map((c) => [c.id, c]));
+  const catalogMap = new Map(allCatalog.map((c) => [c.id, c]));
+
+  return requests.map((r) => ({
+    ...r,
+    customerName: r.customerName ?? (r.customerId ? customerMap.get(r.customerId)?.name : undefined),
+    catalogProductName:
+      r.catalogProductName ?? (r.catalogId ? catalogMap.get(r.catalogId)?.productName : undefined),
+  }));
+}
+
+export const sourcingRequestsApi = {
+  async list(params: SourcingRequestFilterParams = {}): Promise<SourcingRequest[]> {
+    let formula: string | undefined;
+    if (params.status) formula = `{Status} = '${params.status}'`;
+
+    const records = await getAllRecords(TABLES.SOURCING_REQUESTS, formula, [
+      { field: "CreatedAt", direction: "desc" },
+    ]);
+    let requests = records.map(mapSourcingRequest);
+
+    if (params.customerId)
+      requests = requests.filter((r) => r.customerId === params.customerId);
+    if (params.search) {
+      const s = params.search.toLowerCase();
+      requests = requests.filter(
+        (r) =>
+          r.requestRef?.toLowerCase().includes(s) ||
+          r.description?.toLowerCase().includes(s) ||
+          r.customerName?.toLowerCase().includes(s)
+      );
+    }
+
+    return resolveSourcingRequestNames(requests);
+  },
+
+  async getById(id: string): Promise<SourcingRequest> {
+    const record = await getRecord(TABLES.SOURCING_REQUESTS, id);
+    const [request] = await resolveSourcingRequestNames([mapSourcingRequest(record)]);
+    return request;
+  },
+
+  async getByCustomer(customerId: string): Promise<SourcingRequest[]> {
+    return this.list({ customerId });
+  },
+
+  async create(
+    input: CreateSourcingRequestInput,
+    createdByEmail: string
+  ): Promise<SourcingRequest> {
+    const count = await countRecords(TABLES.SOURCING_REQUESTS);
+    const requestRef = generateRequestRef(count + 1);
+
+    const fields: FieldSet = {
+      RequestRef: requestRef,
+      Customer: [input.customerId],
+      Description: input.description,
+      Quantity: input.quantity,
+      Status: "Requested",
+      Notes: input.notes ?? "",
+      CreatedBy: createdByEmail,
+      CreatedAt: toISOString(),
+    };
+    if (input.photos && input.photos.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fields["Photos"] = input.photos.map((url) => ({ url })) as any;
+    }
+
+    const record = await createRecord(TABLES.SOURCING_REQUESTS, fields);
+    const requestRefFromRecord = (record.fields["RequestRef"] as string) ?? requestRef;
+
+    await statusHistoryApi.log({
+      recordType: "SourcingRequest",
+      recordId: record.id,
+      recordRef: requestRefFromRecord,
+      previousStatus: "",
+      newStatus: "Requested",
+      changedBy: createdByEmail,
+      changedByRole: "customer",
+      changedAt: toISOString(),
+    });
+
+    return mapSourcingRequest(record);
+  },
+
+  async quote(
+    id: string,
+    input: QuoteSourcingRequestInput,
+    changedByEmail: string,
+    changedByRole: UserRole
+  ): Promise<SourcingRequest> {
+    const existing = await getRecord(TABLES.SOURCING_REQUESTS, id);
+    const previousStatus = existing.fields["Status"] as string;
+    const requestRef = existing.fields["RequestRef"] as string;
+
+    if (previousStatus !== "Requested" && previousStatus !== "Quoted") {
+      throw new BusinessError(
+        `Cannot send a quote for a request with status '${previousStatus}'`
+      );
+    }
+
+    let catalogId = input.catalogId;
+    if (input.newCatalogEntry) {
+      const newEntry = await productCatalogApi.create(input.newCatalogEntry, changedByEmail);
+      catalogId = newEntry.id;
+    }
+
+    const quantity =
+      input.quantity ?? ((existing.fields["Quantity"] as number) || 1);
+    const quotedTotalUsd = input.quotedUnitPriceUsd * quantity;
+
+    const fields: FieldSet = {
+      Status: "Quoted",
+      QuotedUnitPriceUsd: input.quotedUnitPriceUsd,
+      QuotedTotalUsd: quotedTotalUsd,
+      QuotedAt: toISOString(),
+    };
+    if (catalogId) fields["ProductCatalog"] = [catalogId];
+    if (input.quoteNotes !== undefined) fields["QuoteNotes"] = input.quoteNotes;
+    if (input.quantity !== undefined) fields["Quantity"] = input.quantity;
+
+    await updateRecord(TABLES.SOURCING_REQUESTS, id, fields);
+
+    await statusHistoryApi.log({
+      recordType: "SourcingRequest",
+      recordId: id,
+      recordRef: requestRef,
+      previousStatus,
+      newStatus: "Quoted",
+      changedBy: changedByEmail,
+      changedByRole,
+      changedAt: toISOString(),
+    });
+
+    if (input.sendWhatsApp) {
+      try {
+        const customerId = ((existing.fields["Customer"] as string[]) ?? [])[0];
+        if (customerId) {
+          const customer = await customersApi.getById(customerId);
+          await whatsAppApi.sendNotification({
+            phone: customer.phone,
+            customerName: customer.name,
+            orderRef: requestRef,
+            newStatus: "Quoted",
+            message: `Hello ${customer.name}, your sourcing request ${requestRef} has a quote ready — please review and approve it in your PAKKmax portal. Thank you for choosing PAKKmax! 📦`,
+          });
+        }
+      } catch {
+        // Non-fatal — WhatsApp notification failures should never block the quote
+      }
+    }
+
+    const updated = await getRecord(TABLES.SOURCING_REQUESTS, id);
+    const [request] = await resolveSourcingRequestNames([mapSourcingRequest(updated)]);
+    return request;
+  },
+
+  async respond(
+    id: string,
+    input: RespondSourcingRequestInput,
+    changedByEmail: string
+  ): Promise<SourcingRequest> {
+    const existing = await getRecord(TABLES.SOURCING_REQUESTS, id);
+    const previousStatus = existing.fields["Status"] as string;
+    const requestRef = existing.fields["RequestRef"] as string;
+
+    if (previousStatus !== "Quoted") {
+      throw new BusinessError("This request is not awaiting a response");
+    }
+    if (!input.approve && !input.declineReason) {
+      throw new BusinessError("A reason is required to decline a quote");
+    }
+
+    const newStatus: SourcingRequestStatus = input.approve ? "Approved" : "Declined";
+    const fields: FieldSet = {
+      Status: newStatus,
+      RespondedAt: toISOString(),
+    };
+    if (!input.approve) fields["DeclineReason"] = input.declineReason;
+
+    await updateRecord(TABLES.SOURCING_REQUESTS, id, fields);
+
+    await statusHistoryApi.log({
+      recordType: "SourcingRequest",
+      recordId: id,
+      recordRef: requestRef,
+      previousStatus,
+      newStatus,
+      changedBy: changedByEmail,
+      changedByRole: "customer",
+      changedAt: toISOString(),
+    });
+
+    const updated = await getRecord(TABLES.SOURCING_REQUESTS, id);
+    const [request] = await resolveSourcingRequestNames([mapSourcingRequest(updated)]);
+    return request;
+  },
+
+  async convert(
+    id: string,
+    itemId: string,
+    changedByEmail: string,
+    changedByRole: UserRole
+  ): Promise<SourcingRequest> {
+    const existing = await getRecord(TABLES.SOURCING_REQUESTS, id);
+    const previousStatus = existing.fields["Status"] as string;
+    const requestRef = existing.fields["RequestRef"] as string;
+
+    if (previousStatus !== "Approved") {
+      throw new BusinessError(
+        `Cannot convert a request with status '${previousStatus}' — it must be Approved first`
+      );
+    }
+
+    await updateRecord(TABLES.SOURCING_REQUESTS, id, {
+      Status: "Converted",
+      Item: [itemId],
+    });
+
+    await statusHistoryApi.log({
+      recordType: "SourcingRequest",
+      recordId: id,
+      recordRef: requestRef,
+      previousStatus,
+      newStatus: "Converted",
+      changedBy: changedByEmail,
+      changedByRole,
+      changedAt: toISOString(),
+    });
+
+    const updated = await getRecord(TABLES.SOURCING_REQUESTS, id);
+    const [request] = await resolveSourcingRequestNames([mapSourcingRequest(updated)]);
+    return request;
+  },
+
+  async delete(id: string): Promise<void> {
+    const existing = await getRecord(TABLES.SOURCING_REQUESTS, id);
+    const status = existing.fields["Status"] as string;
+    if (status !== "Requested") {
+      throw new BusinessError(
+        `Cannot delete a request with status '${status}' — only unquoted requests can be removed`
+      );
+    }
+    await deleteRecord(TABLES.SOURCING_REQUESTS, id);
   },
 };
 

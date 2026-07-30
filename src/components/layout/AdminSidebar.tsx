@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   Settings,
   X,
+  Store,
+  BookOpen,
+  PackageSearch,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -29,6 +32,9 @@ const navItems = [
   { href: "/admin/containers", label: "Containers", icon: Container },
   { href: "/admin/orders", label: "Invoices", icon: ShoppingCart },
   { href: "/admin/sorting", label: "Sorting", icon: SortAsc },
+  { href: "/admin/sourcing", label: "Sourcing", icon: PackageSearch },
+  { href: "/admin/catalog", label: "Catalog", icon: BookOpen },
+  { href: "/admin/suppliers", label: "Suppliers", icon: Store },
 { href: "/admin/staff", label: "Staff", icon: ShieldCheck },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

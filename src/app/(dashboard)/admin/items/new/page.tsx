@@ -9,8 +9,8 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
-import type { Customer } from "@/types";
-import { ArrowLeft, Camera, X, Package, Loader2, ChevronLeft, ChevronRight, Columns2, Tag, Search } from "lucide-react";
+import type { Customer, SourcingRequest } from "@/types";
+import { ArrowLeft, Camera, X, Package, Loader2, ChevronLeft, ChevronRight, Columns2, Tag, Search, PackageSearch } from "lucide-react";
 import axios from "axios";
 import { uploadPhotos } from "@/lib/uploadPhotos";
 
@@ -127,6 +127,11 @@ export default function NewItemPage() {
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
+  // Convert-to-Item flow: pre-fill from an Approved sourcing request
+  const fromSourcingRequestId = searchParams?.get("fromSourcingRequestId") ?? null;
+  const [prefillRequest, setPrefillRequest] = useState<SourcingRequest | null>(null);
+  const [prefillPhotoUrls, setPrefillPhotoUrls] = useState<string[]>([]);
+
   useEffect(() => {
     axios.get("/api/customers").then((res) => {
       const data: Customer[] = res.data.data;
@@ -141,6 +146,33 @@ export default function NewItemPage() {
     axios.get("/api/special-rates").then((res) => setSpecialRates(res.data.data)).catch(() => {});
     axios.get("/api/package-rates").then((res) => setPkgRates(res.data.data)).catch(() => {});
   }, []);
+
+  // Load the approved sourcing request being converted, if any
+  useEffect(() => {
+    if (!fromSourcingRequestId) return;
+    axios
+      .get(`/api/sourcing-requests/${fromSourcingRequestId}`)
+      .then((res) => setPrefillRequest(res.data.data))
+      .catch(() => error("Failed to load sourcing request"));
+  }, [fromSourcingRequestId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once both the request and the customer list are loaded, pre-fill the form
+  useEffect(() => {
+    if (!prefillRequest || customers.length === 0) return;
+    setForm((prev) => ({
+      ...prev,
+      customerId: prefillRequest.customerId,
+      description: prefillRequest.description,
+      quantity: String(prefillRequest.quantity),
+      estPrice:
+        prefillRequest.quotedUnitPriceUsd !== undefined
+          ? String(prefillRequest.quotedUnitPriceUsd)
+          : prev.estPrice,
+    }));
+    setPrefillPhotoUrls(prefillRequest.photos);
+    const match = customers.find((c) => c.id === prefillRequest.customerId);
+    if (match) setCustomerSearch(match.shippingMark);
+  }, [prefillRequest, customers]);
 
   useEffect(() => {
     if (!form.customerId) return;
@@ -272,11 +304,26 @@ export default function NewItemPage() {
         width: form.width ? parseFloat(form.width) : undefined,
         height: form.height ? parseFloat(form.height) : undefined,
         quantity: form.quantity ? parseInt(form.quantity) : undefined,
-        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+        photoUrls:
+          [...prefillPhotoUrls, ...photoUrls].length > 0
+            ? [...prefillPhotoUrls, ...photoUrls]
+            : undefined,
+        sourcingRequestId: fromSourcingRequestId ?? undefined,
       };
 
       const res = await axios.post("/api/items", payload);
       success("Item received!", res.data.message);
+
+      if (fromSourcingRequestId) {
+        try {
+          await axios.post(`/api/sourcing-requests/${fromSourcingRequestId}/convert`, {
+            itemId: res.data.data.id,
+          });
+        } catch {
+          error("The item was created, but linking it back to the sourcing request failed.");
+        }
+      }
+
       router.push(`/admin/items/${res.data.data.id}`);
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err)
@@ -292,7 +339,14 @@ export default function NewItemPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="Add Item" subtitle="Record a new package at the warehouse" />
+      <Header
+        title={fromSourcingRequestId ? "Convert Sourcing Request" : "Add Item"}
+        subtitle={
+          fromSourcingRequestId
+            ? `Converting ${prefillRequest?.requestRef ?? "sourcing request"} into a received item`
+            : "Record a new package at the warehouse"
+        }
+      />
 
       <div className={`flex-1 overflow-hidden ${splitView && photoPreviews.length > 0 ? "flex flex-row" : "overflow-y-auto"}`}>
         {/* Form column */}
@@ -316,6 +370,26 @@ export default function NewItemPage() {
               </button>
             )}
           </div>
+
+          {fromSourcingRequestId && prefillRequest && (
+            <div className="mb-5 bg-brand-50 border border-brand-100 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-brand-700 mb-2">
+                <PackageSearch className="h-4 w-4" />
+                Converting {prefillRequest.requestRef}
+              </div>
+              {prefillPhotoUrls.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {prefillPhotoUrls.map((url) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={url} src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-brand-200" />
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-brand-600 mt-2">
+                Customer, description and photos below are pre-filled from the sourcing request. Add the physical weight/dimensions once you've measured the package.
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <Card>

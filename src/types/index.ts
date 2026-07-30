@@ -120,6 +120,7 @@ export interface Item {
   isSpecialItem?: boolean;
   specialRateName?: string;
   notes?: string;
+  sourcingRequestId?: string;
   createdAt: string;
   createdBy?: string;
 }
@@ -145,6 +146,7 @@ export interface CreateItemInput {
   isSpecialItem?: boolean;
   specialRateName?: string;
   notes?: string;
+  sourcingRequestId?: string;
 }
 
 export interface UpdateItemInput {
@@ -255,7 +257,7 @@ export interface UpdateContainerInput {
 // ============================================================
 export interface StatusHistory {
   id: string;
-  recordType: "Item" | "Container" | "Order";
+  recordType: "Item" | "Container" | "Order" | "SourcingRequest";
   recordId: string;
   recordRef: string; // human-readable ref
   previousStatus: string;
@@ -479,6 +481,89 @@ export interface UpdateSupplierInput {
 }
 
 // ============================================================
+// PRODUCT CATALOG
+// ============================================================
+export interface ProductCatalogEntry {
+  id: string;
+  catalogId: string; // e.g. CAT-0001
+  productName: string;
+  description?: string;
+  referenceImages: string[];
+  baseCost?: number;
+  supplierId?: string;
+  supplierName?: string; // lookup
+  materialSpecs?: string;
+  createdAt: string;
+  createdBy?: string;
+}
+
+export interface CreateProductCatalogInput {
+  productName: string;
+  description?: string;
+  referenceImages?: string[];
+  baseCost?: number;
+  supplierId?: string;
+  materialSpecs?: string;
+}
+
+export type UpdateProductCatalogInput = Partial<CreateProductCatalogInput>;
+
+// ============================================================
+// SOURCING REQUEST
+// ============================================================
+export type SourcingRequestStatus =
+  | "Requested"
+  | "Quoted"
+  | "Approved"
+  | "Declined"
+  | "Converted";
+
+export interface SourcingRequest {
+  id: string;
+  requestRef: string; // e.g. SRC-0001
+  customerId: string;
+  customerName?: string; // lookup
+  photos: string[];
+  description: string;
+  quantity: number;
+  status: SourcingRequestStatus;
+  catalogId?: string;
+  catalogProductName?: string; // lookup
+  quotedUnitPriceUsd?: number;
+  quotedTotalUsd?: number;
+  quoteNotes?: string;
+  declineReason?: string;
+  notes?: string;
+  itemId?: string; // set once Converted
+  createdAt: string;
+  createdBy?: string;
+  quotedAt?: string;
+  respondedAt?: string;
+}
+
+export interface CreateSourcingRequestInput {
+  customerId: string;
+  photos: string[];
+  description: string;
+  quantity: number;
+  notes?: string;
+}
+
+export interface QuoteSourcingRequestInput {
+  catalogId?: string;
+  newCatalogEntry?: CreateProductCatalogInput;
+  quotedUnitPriceUsd: number;
+  quantity?: number;
+  quoteNotes?: string;
+  sendWhatsApp?: boolean;
+}
+
+export interface RespondSourcingRequestInput {
+  approve: boolean;
+  declineReason?: string;
+}
+
+// ============================================================
 // FILTER / SEARCH PARAMS
 // ============================================================
 export interface ItemFilterParams {
@@ -512,4 +597,10 @@ export interface OrderFilterParams {
   search?: string;
   page?: number;
   pageSize?: number;
+}
+
+export interface SourcingRequestFilterParams {
+  status?: SourcingRequestStatus;
+  customerId?: string;
+  search?: string;
 }

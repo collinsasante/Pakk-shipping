@@ -11,11 +11,16 @@ cloudinary.config({
 });
 
 export async function POST(request: NextRequest) {
-  const authResult = await requireAuth(request, ["super_admin", "warehouse_staff"]);
+  const authResult = await requireAuth(request, ["super_admin", "warehouse_staff", "customer"]);
   if (authResult instanceof Response) return authResult;
+  const { user } = authResult;
 
   try {
-    const { folder = "pakkmaxx/items" } = await request.json().catch(() => ({}));
+    const body = await request.json().catch(() => ({}));
+    // Customers can only upload into a fixed folder — never trust a client-supplied
+    // folder for the customer role, to prevent writing into arbitrary Cloudinary paths.
+    const folder =
+      user.role === "customer" ? "pakkmaxx/sourcing" : body.folder ?? "pakkmaxx/items";
     const timestamp = Math.round(Date.now() / 1000);
 
     const signature = cloudinary.utils.api_sign_request(

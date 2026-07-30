@@ -10,14 +10,18 @@ export interface UploadedPhoto {
   height: number;
 }
 
-export async function uploadPhotos(files: File[]): Promise<UploadedPhoto[]> {
+export async function uploadPhotos(
+  files: File[],
+  requestedFolder: string = "pakkmaxx/items"
+): Promise<UploadedPhoto[]> {
   if (files.length === 0) return [];
 
-  // Get signed params from our server
+  // Get signed params from our server. Note: the server ignores this folder
+  // value for customer-role callers and forces "pakkmaxx/sourcing" instead.
   const signRes = await fetch("/api/upload/sign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ folder: "pakkmaxx/items" }),
+    body: JSON.stringify({ folder: requestedFolder }),
   });
 
   if (!signRes.ok) throw new Error("Failed to get upload signature");
